@@ -1,78 +1,153 @@
 import React, { useRef, useState, useEffect } from "react";
 import * as Tone from "tone";
 import audioEngine from "./audio-engine";
+import type { LoopLength } from "./types";
 
+// Constants:
 const NUM_CHANNELS = 3; // one per drum sample (assumed order: C2, D2, E2)
-const NUM_STEPS = 32;   // 2 bars of 16th notes (16 per bar)
-const SUBDIVISION = "16n";
-
-// Map each channel (row) to the corresponding note that the sampler uses.
+const SUBDIVISION = "16n"; // grid resolution
 const channelNotes = ["C2", "D2", "E2"];
 
+// Map loop length (in measures) to the number of steps in a 4/4 time signature,
+// using 16th-note subdivisions (4 beats per measure × 4 steps per beat)
+const loopMapping: Record<string, number> = {
+  "1m": 16,
+  "2m": 32,
+  "4m": 64,
+};
+
+// Always maintain a master grid with MAX_STEPS columns.
+const MAX_STEPS = 64;
+
 const App: React.FC = () => {
+  // BPM state.
   const [bpm, setBpm] = useState(120);
-  // Grid state: an array for each channel, each with 32 boolean steps.
+  // Loop length state: "1m", "2m", or "4m". This also determines how many steps are visible.
+  const [loopLength, setLoopLength] = useState<LoopLength>("1m");
+  // Swing state: 0 means no swing, 0.1 means 10% swing delay, etc.
+  const [swing, setSwing] = useState(0);
+  // Number of steps visible (and scheduled) based on the current loop length.
+  const numSteps = loopMapping[loopLength];
+
+  // Master grid state: always MAX_STEPS columns for each channel.
   const [grid, setGrid] = useState<boolean[][]>(
-    Array.from({ length: NUM_CHANNELS }, () => Array(NUM_STEPS).fill(false))
+    Array.from({ length: NUM_CHANNELS }, () => Array(MAX_STEPS).fill(false))
   );
 
-  // Ref to always have the latest grid in our Tone.Loop callback.
+  // A ref to hold the latest grid for scheduling.
   const gridRef = useRef(grid);
   useEffect(() => {
     gridRef.current = grid;
   }, [grid]);
 
-  // Ref to hold our Tone.Loop instance.
+  // Refs for the Tone.Loop instance, step counter, and swing value.
   const loopRef = useRef<Tone.Loop | null>(null);
-  // Ref to hold the current step count.
   const stepCounterRef = useRef(0);
+  const swingRef = useRef(swing);
+  useEffect(() => {
+    swingRef.current = swing;
+  }, [swing]);
 
-  // Removed audioEngine.init() from useEffect.
-  // We'll initialize the engine in the start button click handler.
+  // When loopLength (or numSteps) changes, update the transport and re-create the Tone.Loop.
+  useEffect(() => {
+    audioEngine.setLoopLength(loopLength);
+    stepCounterRef.current = 0;
+    if (loopRef.current) {
+      loopRef.current.dispose();
+    }
+    loopRef.current = new Tone.Loop((time) => {
+      const step = stepCounterRef.current;
+      let scheduledTime = time;
+      // Apply swing on odd steps.
+      if (step % 2 === 1) {
+        const swingDelay = swingRef.current * Tone.Time("16n").toSeconds();
+        scheduledTime = time + swingDelay;
+      }
+      gridRef.current.forEach((row, channel) => {
+        if (row[step]) {
+          audioEngine.playNote(channelNotes[channel], scheduledTime);
+        }
+      });
+      stepCounterRef.current = (step + 1) % numSteps;
+    }, SUBDIVISION);
+    loopRef.current.start(0);
+  }, [loopLength, numSteps]);
 
-  // Handle BPM changes.
+  // Handler for BPM changes.
   const handleBpmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newBpm = parseInt(e.target.value, 10);
     setBpm(newBpm);
     audioEngine.setBPM(newBpm);
   };
 
-  // Start transport and (if needed) create the sequencer loop.
-  // This function is now async so we can resume the AudioContext.
-  const handleStart = async () => {
-    // If the AudioContext is suspended, resume it.
-    if (Tone.context.state !== "running") {
-      await Tone.context.resume();
+  // Handler for loop length selection.
+  const handleLoopLengthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setLoopLength(e.target.value as LoopLength);
+  };
+
+  // Duplicate Pattern:
+  // If loopLength is "1m", copy steps 0-15 into steps 16-31 and set loopLength to "2m".
+  // If loopLength is "2m", copy steps 0-31 into steps 32-63 and set loopLength to "4m".
+  const duplicatePattern = () => {
+    if (loopLength === "1m") {
+      // Duplicate first 16 steps into steps 16-31.
+      setGrid((prev) =>
+        prev.map((row) => {
+          const newRow = [...row];
+          for (let i = 0; i < 16; i++) {
+            newRow[i + 16] = newRow[i];
+          }
+          return newRow;
+        })
+      );
+      setLoopLength("2m");
+    } else if (loopLength === "2m") {
+      // Duplicate first 32 steps into steps 32-63.
+      setGrid((prev) =>
+        prev.map((row) => {
+          const newRow = [...row];
+          for (let i = 0; i < 32; i++) {
+            newRow[i + 32] = newRow[i];
+          }
+          return newRow;
+        })
+      );
+      setLoopLength("4m");
     }
-    // Initialize the audio engine (this will now run in response to a user gesture)
+  };
+
+  // Start transport and create the Tone.Loop if needed.
+  const handleStart = async () => {
+    if (Tone.getContext().state !== "running") {
+      await Tone.getContext().resume();
+    }
     await audioEngine.init();
-    
-    // Create and schedule our Tone.Loop if not already created.
     if (!loopRef.current) {
       loopRef.current = new Tone.Loop((time) => {
         const step = stepCounterRef.current;
-        // For each channel, check if the current step is active.
+        let scheduledTime = time;
+        if (step % 2 === 1) {
+          const swingDelay = swingRef.current * Tone.Time("16n").toSeconds();
+          scheduledTime = time + swingDelay;
+        }
         gridRef.current.forEach((row, channel) => {
           if (row[step]) {
-            // Play the note for this channel at the scheduled time.
-            audioEngine.playNote(channelNotes[channel], time);
+            audioEngine.playNote(channelNotes[channel], scheduledTime);
           }
         });
-        // Increment step counter modulo NUM_STEPS.
-        stepCounterRef.current = (step + 1) % NUM_STEPS;
+        stepCounterRef.current = (step + 1) % numSteps;
       }, SUBDIVISION);
       loopRef.current.start(0);
     }
-    // Start the global transport.
     audioEngine.startTransport();
   };
 
-  // Stop the transport.
+  // Stop transport.
   const handleStop = () => {
     audioEngine.stopTransport();
   };
 
-  // Toggle a cell in the grid when the user clicks it.
+  // Toggle a cell in the master grid.
   const toggleCell = (row: number, col: number) => {
     setGrid((prev) =>
       prev.map((r, rowIndex) =>
@@ -84,19 +159,19 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="p-4 space-y-6">
-      {/* Top Section: Transport Controls */}
-      <div className="border p-4 rounded">
+    <div className="space-y-6 p-4">
+      {/* Top Section: Transport and Settings */}
+      <div className="flex flex-col space-y-4 rounded border p-4">
         <div className="flex items-center space-x-4">
           <button
             onClick={handleStart}
-            className="px-4 py-2 bg-green-500 rounded text-white"
+            className="rounded bg-green-500 px-4 py-2 text-white"
           >
             Start
           </button>
           <button
             onClick={handleStop}
-            className="px-4 py-2 bg-red-500 rounded text-white"
+            className="rounded bg-red-500 px-4 py-2 text-white"
           >
             Stop
           </button>
@@ -106,21 +181,57 @@ const App: React.FC = () => {
               type="number"
               value={bpm}
               onChange={handleBpmChange}
-              className="border rounded p-1 w-20"
+              className="w-20 rounded border p-1"
             />
           </label>
         </div>
+        <div className="flex items-center space-x-2">
+          <span>Loop Length:</span>
+          <select
+            value={loopLength}
+            onChange={handleLoopLengthChange}
+            className="rounded border p-1"
+          >
+            <option value="1m">1 Measure</option>
+            <option value="2m">2 Measures</option>
+            <option value="4m">4 Measures</option>
+          </select>
+          <button
+            onClick={duplicatePattern}
+            className="rounded bg-blue-500 px-4 py-2 text-white"
+          >
+            Duplicate Pattern
+          </button>
+        </div>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <span>Swing:</span>
+        <input
+          type="range"
+          min="0"
+          max="0.5"
+          step="0.01"
+          value={swing}
+          onChange={(e) => setSwing(parseFloat(e.target.value))}
+          className="w-32"
+        />
+        <span>{Math.round(swing * 100)}%</span>
       </div>
 
       {/* Bottom Section: Drum Grid */}
-      <div className="border p-4 rounded">
-        <div className="grid grid-cols-32 gap-1">
+      <div className="rounded border p-4">
+        {/* Display only the first numSteps columns of the master grid */}
+        <div
+          className="grid gap-1"
+          style={{ gridTemplateColumns: `repeat(${numSteps}, 2rem)` }}
+        >
           {grid.map((row, rowIndex) =>
-            row.map((cell, colIndex) => (
+            row.slice(0, numSteps).map((cell, colIndex) => (
               <div
                 key={`${rowIndex}-${colIndex}`}
                 onClick={() => toggleCell(rowIndex, colIndex)}
-                className={`w-8 h-8 border cursor-pointer ${
+                className={`h-8 w-8 cursor-pointer border ${
                   cell ? "bg-blue-500" : "bg-gray-200"
                 }`}
               />
