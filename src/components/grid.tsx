@@ -3,7 +3,7 @@ import type { GridState } from "@/types";
 
 type GridProps = {
   grid: GridState;
-  toggleCell: (row: number, col: number) => void;
+  toggleCell: (row: number, col: number, newState: number) => void;
   numVisibleSteps?: number;
 };
 
@@ -16,7 +16,7 @@ export function Grid({ grid, toggleCell, numVisibleSteps = 16}: GridProps) {
           .map((cell, colIndex) => (
             <Pad
               state={cell}
-              onClick={() => toggleCell(rowIndex, colIndex)}
+              onClick={(newState) => toggleCell(rowIndex, colIndex, newState)}
               key={`${rowIndex}-${colIndex}`}
             />
           )),
