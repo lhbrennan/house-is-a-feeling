@@ -1,5 +1,5 @@
 import * as Tone from "tone";
-import type { LoopLength } from "./types";
+import type { LoopLength } from "./constants";
 
 let isInitialized = false;
 let sampler: Tone.Sampler | null = null;

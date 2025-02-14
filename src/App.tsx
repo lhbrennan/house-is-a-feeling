@@ -1,7 +1,10 @@
 import React, { useRef, useState, useEffect } from "react";
 import * as Tone from "tone";
 import audioEngine from "./audio-engine";
-import type { LoopLength } from "./types";
+import { Button } from "@/components/ui/button";
+import { Pad } from "@/components/pad";
+import { createDefaultGrid } from "@/utils";
+import type { LoopLength } from "./constants";
 
 // Constants:
 const NUM_CHANNELS = 3; // one per drum sample (assumed order: C2, D2, E2)
@@ -19,7 +22,7 @@ const loopMapping: Record<string, number> = {
 // Always maintain a master grid with MAX_STEPS columns.
 const MAX_STEPS = 64;
 
-const App: React.FC = () => {
+function App() {
   // BPM state.
   const [bpm, setBpm] = useState(120);
   // Loop length state: "1m", "2m", or "4m". This also determines how many steps are visible.
@@ -27,11 +30,11 @@ const App: React.FC = () => {
   // Swing state: 0 means no swing, 0.1 means 10% swing delay, etc.
   const [swing, setSwing] = useState(0);
   // Number of steps visible (and scheduled) based on the current loop length.
-  const numSteps = loopMapping[loopLength];
+  const numVisibleSteps = loopMapping[loopLength];
 
   // Master grid state: always MAX_STEPS columns for each channel.
   const [grid, setGrid] = useState<boolean[][]>(
-    Array.from({ length: NUM_CHANNELS }, () => Array(MAX_STEPS).fill(false))
+    createDefaultGrid(NUM_CHANNELS, MAX_STEPS),
   );
 
   // A ref to hold the latest grid for scheduling.
@@ -48,7 +51,7 @@ const App: React.FC = () => {
     swingRef.current = swing;
   }, [swing]);
 
-  // When loopLength (or numSteps) changes, update the transport and re-create the Tone.Loop.
+  // When loopLength (or numVisibleSteps) changes, update the transport and re-create the Tone.Loop.
   useEffect(() => {
     audioEngine.setLoopLength(loopLength);
     stepCounterRef.current = 0;
@@ -68,10 +71,10 @@ const App: React.FC = () => {
           audioEngine.playNote(channelNotes[channel], scheduledTime);
         }
       });
-      stepCounterRef.current = (step + 1) % numSteps;
+      stepCounterRef.current = (step + 1) % numVisibleSteps;
     }, SUBDIVISION);
     loopRef.current.start(0);
-  }, [loopLength, numSteps]);
+  }, [loopLength, numVisibleSteps]);
 
   // Handler for BPM changes.
   const handleBpmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -98,7 +101,7 @@ const App: React.FC = () => {
             newRow[i + 16] = newRow[i];
           }
           return newRow;
-        })
+        }),
       );
       setLoopLength("2m");
     } else if (loopLength === "2m") {
@@ -110,7 +113,7 @@ const App: React.FC = () => {
             newRow[i + 32] = newRow[i];
           }
           return newRow;
-        })
+        }),
       );
       setLoopLength("4m");
     }
@@ -135,7 +138,7 @@ const App: React.FC = () => {
             audioEngine.playNote(channelNotes[channel], scheduledTime);
           }
         });
-        stepCounterRef.current = (step + 1) % numSteps;
+        stepCounterRef.current = (step + 1) % numVisibleSteps;
       }, SUBDIVISION);
       loopRef.current.start(0);
     }
@@ -153,8 +156,8 @@ const App: React.FC = () => {
       prev.map((r, rowIndex) =>
         rowIndex === row
           ? r.map((cell, colIndex) => (colIndex === col ? !cell : cell))
-          : r
-      )
+          : r,
+      ),
     );
   };
 
@@ -163,25 +166,26 @@ const App: React.FC = () => {
       {/* Top Section: Transport and Settings */}
       <div className="flex flex-col space-y-4 rounded border p-4">
         <div className="flex items-center space-x-4">
-          <button
+          <Pad state="high" onClick={() => {}} />
+          <Button
             onClick={handleStart}
-            className="rounded bg-green-500 px-4 py-2 text-white"
+            // className="rounded bg-green-500 px-4 py-2 text-white"
           >
             Start
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleStop}
-            className="rounded bg-red-500 px-4 py-2 text-white"
+            // className="rounded bg-red-500 px-4 py-2 text-white"
           >
             Stop
-          </button>
+          </Button>
           <label className="flex items-center space-x-2">
             <span>BPM:</span>
             <input
               type="number"
               value={bpm}
               onChange={handleBpmChange}
-              className="w-20 rounded border p-1"
+              // className="w-20 rounded border p-1"
             />
           </label>
         </div>
@@ -190,18 +194,18 @@ const App: React.FC = () => {
           <select
             value={loopLength}
             onChange={handleLoopLengthChange}
-            className="rounded border p-1"
+            // className="rounded border p-1"
           >
             <option value="1m">1 Measure</option>
             <option value="2m">2 Measures</option>
             <option value="4m">4 Measures</option>
           </select>
-          <button
+          <Button
             onClick={duplicatePattern}
-            className="rounded bg-blue-500 px-4 py-2 text-white"
+            // className="rounded bg-blue-500 px-4 py-2 text-white"
           >
             Duplicate Pattern
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -221,26 +225,28 @@ const App: React.FC = () => {
 
       {/* Bottom Section: Drum Grid */}
       <div className="rounded border p-4">
-        {/* Display only the first numSteps columns of the master grid */}
+        {/* Display only the first numVisibleSteps columns of the master grid */}
         <div
           className="grid gap-1"
-          style={{ gridTemplateColumns: `repeat(${numSteps}, 2rem)` }}
+          style={{ gridTemplateColumns: `repeat(${numVisibleSteps}, 2rem)` }}
         >
           {grid.map((row, rowIndex) =>
-            row.slice(0, numSteps).map((cell, colIndex) => (
-              <div
-                key={`${rowIndex}-${colIndex}`}
-                onClick={() => toggleCell(rowIndex, colIndex)}
-                className={`h-8 w-8 cursor-pointer border ${
-                  cell ? "bg-blue-500" : "bg-gray-200"
-                }`}
-              />
-            ))
+            row
+              .slice(0, numVisibleSteps)
+              .map((cell, colIndex) => (
+                <div
+                  key={`${rowIndex}-${colIndex}`}
+                  onClick={() => toggleCell(rowIndex, colIndex)}
+                  className={`h-8 w-8 cursor-pointer border ${
+                    cell ? "bg-blue-500" : "bg-gray-200"
+                  }`}
+                />
+              )),
           )}
         </div>
       </div>
     </div>
   );
-};
+}
 
 export default App;
