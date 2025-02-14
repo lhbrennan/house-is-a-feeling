@@ -1,6 +1,8 @@
 import { cva } from "class-variance-authority";
 import { cn } from "@/lib/utils";
-import { PAD_STATES, type PadStates } from "@/constants";
+import type { PadState } from "@/types";
+
+const PAD_STATES = ['off', 'low', 'medium', 'high'] as const;
 
 const padVariants = cva(
   "flex items-center justify-center w-10 h-10 rounded-lg outline-none \
@@ -9,24 +11,26 @@ const padVariants = cva(
   {
     variants: {
       state: {
-        [PAD_STATES.off]: "bg-slate-200",
-        [PAD_STATES.low]: "bg-blue-200",
-        [PAD_STATES.medium]: "bg-blue-400",
-        [PAD_STATES.high]: "bg-blue-600",
+        "off": "bg-slate-200",
+        "low": "bg-blue-200",
+        "medium": "bg-blue-400",
+        "high": "bg-blue-600",
       },
     },
     defaultVariants: {
-      state: PAD_STATES.off,
+      state: "off",
     },
   },
 );
 
+
 type PadProps = {
-  state?: PadStates;
+  state?: PadState;
   onClick?: () => void;
 };
 
-export function Pad({ state = "off", onClick, ...props }: PadProps) {
+export function Pad({ state : numericState = 0, onClick, ...props }: PadProps) {
+  const  state = PAD_STATES[numericState];
   return (
     <button
       type="button"

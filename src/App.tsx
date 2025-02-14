@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Pad } from "@/components/pad";
 import { createDefaultGrid } from "@/utils";
 import type { LoopLength } from "./constants";
+import type { GridState } from "./types";
 
 // Constants:
 const NUM_CHANNELS = 3; // one per drum sample (C2, D2, E2)
@@ -31,7 +32,7 @@ function App() {
   const numVisibleSteps = loopMapping[loopLength];
 
   // Master grid state: always MAX_STEPS columns for each channel.
-  const [grid, setGrid] = useState<boolean[][]>(
+  const [grid, setGrid] = useState<GridState>(
     createDefaultGrid(NUM_CHANNELS, MAX_STEPS),
   );
   // Keep a ref to the grid for scheduling.
@@ -155,7 +156,23 @@ function App() {
     setGrid((prev) =>
       prev.map((r, rowIndex) =>
         rowIndex === row
-          ? r.map((cell, colIndex) => (colIndex === col ? !cell : cell))
+          ? r.map((cell, colIndex) => {
+              if (colIndex === col) {
+                switch (cell) {
+                  case 0:
+                    return 3;
+                  case 3:
+                    return 2;
+                  case 2:
+                    return 1;
+                  case 1:
+                    return 0;
+                  default:
+                    return 0;
+                }
+              }
+              return cell;
+            })
           : r,
       ),
     );
@@ -166,7 +183,6 @@ function App() {
       {/* Top Section: Transport and Settings */}
       <div className="flex flex-col space-y-4 rounded border p-4">
         <div className="flex items-center space-x-4">
-          <Pad state="high" onClick={() => {}} />
           <Button onClick={handleStart}>Start</Button>
           <Button onClick={handleStop}>Stop</Button>
           <label className="flex items-center space-x-2">
