@@ -51,14 +51,9 @@ function App() {
     swingRef.current = swing;
   }, [swing]);
 
-  // When loopLength (or numVisibleSteps) changes, update the transport and re-create the Tone.Loop.
-  useEffect(() => {
-    audioEngine.setLoopLength(loopLength);
-    stepCounterRef.current = 0;
-    if (loopRef.current) {
-      loopRef.current.dispose();
-    }
-    loopRef.current = new Tone.Loop((time) => {
+  // Function to create a new Tone.Loop
+  const createToneLoop = () => {
+    return new Tone.Loop((time) => {
       const step = stepCounterRef.current;
       let scheduledTime = time;
       // Apply swing on odd steps.
@@ -73,6 +68,16 @@ function App() {
       });
       stepCounterRef.current = (step + 1) % numVisibleSteps;
     }, SUBDIVISION);
+  };
+
+  // When loopLength (or numVisibleSteps) changes, update the transport and re-create the Tone.Loop.
+  useEffect(() => {
+    audioEngine.setLoopLength(loopLength);
+    stepCounterRef.current = 0;
+    if (loopRef.current) {
+      loopRef.current.dispose();
+    }
+    loopRef.current = createToneLoop();
     loopRef.current.start(0);
   }, [loopLength, numVisibleSteps]);
 
@@ -126,20 +131,7 @@ function App() {
     }
     await audioEngine.init();
     if (!loopRef.current) {
-      loopRef.current = new Tone.Loop((time) => {
-        const step = stepCounterRef.current;
-        let scheduledTime = time;
-        if (step % 2 === 1) {
-          const swingDelay = swingRef.current * Tone.Time("16n").toSeconds();
-          scheduledTime = time + swingDelay;
-        }
-        gridRef.current.forEach((row, channel) => {
-          if (row[step]) {
-            audioEngine.playNote(channelNotes[channel], scheduledTime);
-          }
-        });
-        stepCounterRef.current = (step + 1) % numVisibleSteps;
-      }, SUBDIVISION);
+      loopRef.current = createToneLoop();
       loopRef.current.start(0);
     }
     audioEngine.startTransport();
