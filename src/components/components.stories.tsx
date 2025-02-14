@@ -2,9 +2,9 @@ import React from "react";
 import '@/index.css'
 import type { Story } from "@ladle/react";
 import { Pad as BasePad } from "./pad";
-import { createDefaultGrid } from "@/utils";
 import { Grid as BaseGrid} from "./grid";
-import type { GridState, PadState } from "@/types";
+import { useGrid } from "@/use-grid";
+import type { PadState } from "@/types";
 
 export const Pad: Story = () => {
   const [padState, setPadState] = React.useState<PadState>(3);
@@ -26,7 +26,8 @@ export const Pad: Story = () => {
 };
 
 export const Grid: Story = () => {
-  const [grid, setGrid] = React.useState<GridState>(createDefaultGrid(5, 16));
+    const { grid, toggleCell } = useGrid(5);
+    console.log(grid);
 
-  return <BaseGrid grid={grid} />;
+  return <BaseGrid toggleCell={toggleCell} grid={grid} />;
 };

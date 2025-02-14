@@ -2,10 +2,8 @@ import React, { useRef, useState, useEffect } from "react";
 import * as Tone from "tone";
 import audioEngine from "./audio-engine";
 import { Button } from "@/components/ui/button";
-import { Pad } from "@/components/pad";
-import { createDefaultGrid } from "@/utils";
 import type { LoopLength } from "./constants";
-import type { GridState } from "./types";
+import { useGrid } from "./use-grid";
 
 // Constants:
 const NUM_CHANNELS = 3; // one per drum sample (C2, D2, E2)
@@ -19,8 +17,6 @@ const loopMapping: Record<string, number> = {
   "4m": 64,
 };
 
-// Always maintain a master grid with MAX_STEPS columns.
-const MAX_STEPS = 64;
 
 function App() {
   // BPM state.
@@ -31,15 +27,8 @@ function App() {
   // # of steps visible based on loop length.
   const numVisibleSteps = loopMapping[loopLength];
 
-  // Master grid state: always MAX_STEPS columns for each channel.
-  const [grid, setGrid] = useState<GridState>(
-    createDefaultGrid(NUM_CHANNELS, MAX_STEPS),
-  );
-  // Keep a ref to the grid for scheduling.
-  const gridRef = useRef(grid);
-  useEffect(() => {
-    gridRef.current = grid;
-  }, [grid]);
+  // Use our custom grid hook.
+  const { grid, gridRef, toggleCell, duplicatePattern } = useGrid(NUM_CHANNELS);
 
   // Tone.Loop instance, step counter, and swing value in refs.
   const loopRef = useRef<Tone.Loop | null>(null);
@@ -104,31 +93,12 @@ function App() {
     setLoopLength(e.target.value as LoopLength);
   };
 
-  // Duplicate pattern
-  const duplicatePattern = () => {
+  // Duplicate pattern handler
+  const handleDuplicatePattern = () => {
+    duplicatePattern(loopLength);
     if (loopLength === "1m") {
-      // Duplicate first 16 steps into steps 16-31
-      setGrid((prev) =>
-        prev.map((row) => {
-          const newRow = [...row];
-          for (let i = 0; i < 16; i++) {
-            newRow[i + 16] = newRow[i];
-          }
-          return newRow;
-        }),
-      );
       setLoopLength("2m");
     } else if (loopLength === "2m") {
-      // Duplicate first 32 steps into steps 32-63
-      setGrid((prev) =>
-        prev.map((row) => {
-          const newRow = [...row];
-          for (let i = 0; i < 32; i++) {
-            newRow[i + 32] = newRow[i];
-          }
-          return newRow;
-        }),
-      );
       setLoopLength("4m");
     }
   };
@@ -149,33 +119,6 @@ function App() {
   // Stop transport
   const handleStop = () => {
     audioEngine.stopTransport();
-  };
-
-  // Toggle a cell in the master grid
-  const toggleCell = (row: number, col: number) => {
-    setGrid((prev) =>
-      prev.map((r, rowIndex) =>
-        rowIndex === row
-          ? r.map((cell, colIndex) => {
-              if (colIndex === col) {
-                switch (cell) {
-                  case 0:
-                    return 3;
-                  case 3:
-                    return 2;
-                  case 2:
-                    return 1;
-                  case 1:
-                    return 0;
-                  default:
-                    return 0;
-                }
-              }
-              return cell;
-            })
-          : r,
-      ),
-    );
   };
 
   return (
@@ -206,7 +149,7 @@ function App() {
             <option value="2m">2 Measures</option>
             <option value="4m">4 Measures</option>
           </select>
-          <Button onClick={duplicatePattern}>Duplicate Pattern</Button>
+          <Button onClick={handleDuplicatePattern}>Duplicate Pattern</Button>
         </div>
       </div>
 
@@ -229,26 +172,25 @@ function App() {
         {/* Show only the first numVisibleSteps columns of the master grid */}
         <div
           className="grid gap-1"
-          style={{ gridTemplateColumns: `repeat(${numVisibleSteps}, 2rem)` }}
+          style={{
+            gridTemplateColumns: `repeat(${numVisibleSteps}, 2rem)`,
+          }}
         >
           {grid.map((row, rowIndex) =>
             row.slice(0, numVisibleSteps).map((cell, colIndex) => {
               // Simple check: is this cell in the "current step"?
               const animate = colIndex === currentStep;
-
               return (
                 <div
                   key={`${rowIndex}-${colIndex}`}
                   onClick={() => toggleCell(rowIndex, colIndex)}
-                  // For now, we just pass `animate` as a data attribute or prop
-                  // so you can wire up the actual animation later.
                   data-animate={animate.toString()}
                   className={`h-8 w-8 cursor-pointer border ${
                     cell ? "bg-blue-500" : "bg-gray-200"
                   } ${animate ? "ring-2 ring-red-500" : ""}`}
                 />
               );
-            }),
+            })
           )}
         </div>
       </div>

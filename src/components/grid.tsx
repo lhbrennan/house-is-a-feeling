@@ -3,14 +3,11 @@ import type { GridState } from "@/types";
 
 type GridProps = {
   grid: GridState;
+  toggleCell: (row: number, col: number) => void;
   numVisibleSteps?: number;
 };
 
-// onClick={() => toggleCell(rowIndex, colIndex)}
-
-
-
-export function Grid({ grid, numVisibleSteps }: GridProps) {
+export function Grid({ grid, toggleCell, numVisibleSteps = 16}: GridProps) {
   return (
     <div className="grid grid-cols-16 gap-1">
       {grid.map((row, rowIndex) =>
@@ -18,9 +15,9 @@ export function Grid({ grid, numVisibleSteps }: GridProps) {
           .slice(0, numVisibleSteps || row.length)
           .map((cell, colIndex) => (
             <Pad
-              state={0}
+              state={cell}
+              onClick={() => toggleCell(rowIndex, colIndex)}
               key={`${rowIndex}-${colIndex}`}
-              onClick={() => console.log(`clicked ${rowIndex} / ${colIndex}`)}
             />
           )),
       )}
