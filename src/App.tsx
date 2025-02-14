@@ -5,32 +5,24 @@ import { Button } from "@/components/ui/button";
 import type { LoopLength } from "./constants";
 import { useGrid } from "./use-grid";
 
-// Constants:
 const NUM_CHANNELS = 3; // one per drum sample (C2, D2, E2)
-const SUBDIVISION = "16n"; // grid resolution
-const channelNotes = ["C2", "D2", "E2"];
-
-// Map loop length (in measures) to # of steps in 4/4 time w/ 16th-note subdivisions
-const loopMapping: Record<string, number> = {
+const GRID_RESOLUTION = "16n"; // 16th notes
+const CHANNEL_NOTES = ["C2", "D2", "E2"];
+const STEPS_MAP: Record<string, number> = { // Map loop length in measures to # of steps
   "1m": 16,
   "2m": 32,
   "4m": 64,
 };
 
-
 function App() {
-  // BPM state.
   const [bpm, setBpm] = useState(120);
-  // Loop length state: "1m", "2m", or "4m".
   const [loopLength, setLoopLength] = useState<LoopLength>("1m");
+  const [currentStep, setCurrentStep] = useState<number | null>(null);
   const [swing, setSwing] = useState(0);
-  // # of steps visible based on loop length.
-  const numVisibleSteps = loopMapping[loopLength];
+  const numVisibleSteps = STEPS_MAP[loopLength];
 
-  // Use our custom grid hook.
   const { grid, gridRef, toggleCell, duplicatePattern } = useGrid(NUM_CHANNELS);
 
-  // Tone.Loop instance, step counter, and swing value in refs.
   const loopRef = useRef<Tone.Loop | null>(null);
   const stepCounterRef = useRef(0);
   const swingRef = useRef(swing);
@@ -38,10 +30,6 @@ function App() {
     swingRef.current = swing;
   }, [swing]);
 
-  // NEW: Track which step is "current" for animation purposes
-  const [currentStep, setCurrentStep] = useState<number | null>(null);
-
-  // Create Tone.Loop
   const createToneLoop = () => {
     return new Tone.Loop((time) => {
       const step = stepCounterRef.current;
@@ -52,22 +40,18 @@ function App() {
         scheduledTime = time + swingDelay;
       }
 
-      // Trigger notes in this step
       gridRef.current.forEach((row, channel) => {
         if (row[step]) {
-          audioEngine.playNote(channelNotes[channel], scheduledTime);
+          audioEngine.playNote(CHANNEL_NOTES[channel], scheduledTime);
         }
       });
 
-      // Tone.Draw for frame-accurate UI updates
       Tone.getDraw().schedule(() => {
-        // Update the current step so we can animate it
-        setCurrentStep(step);
+        setCurrentStep(step); // Update the current step so we can animate it
       }, scheduledTime);
 
-      // Move to the next step
       stepCounterRef.current = (step + 1) % numVisibleSteps;
-    }, SUBDIVISION);
+    }, GRID_RESOLUTION);
   };
 
   // When loopLength changes, update transport and recreate loop
@@ -81,19 +65,16 @@ function App() {
     loopRef.current.start(0);
   }, [loopLength, numVisibleSteps]);
 
-  // BPM handler
   const handleBpmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newBpm = parseInt(e.target.value, 10);
     setBpm(newBpm);
     audioEngine.setBPM(newBpm);
   };
 
-  // Loop length handler
   const handleLoopLengthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setLoopLength(e.target.value as LoopLength);
   };
 
-  // Duplicate pattern handler
   const handleDuplicatePattern = () => {
     duplicatePattern(loopLength);
     if (loopLength === "1m") {
@@ -103,7 +84,6 @@ function App() {
     }
   };
 
-  // Start transport
   const handleStart = async () => {
     if (Tone.getContext().state !== "running") {
       await Tone.getContext().resume();
@@ -116,7 +96,6 @@ function App() {
     audioEngine.startTransport();
   };
 
-  // Stop transport
   const handleStop = () => {
     audioEngine.stopTransport();
   };
@@ -178,7 +157,6 @@ function App() {
         >
           {grid.map((row, rowIndex) =>
             row.slice(0, numVisibleSteps).map((cell, colIndex) => {
-              // Simple check: is this cell in the "current step"?
               const animate = colIndex === currentStep;
               return (
                 <div
@@ -190,7 +168,7 @@ function App() {
                   } ${animate ? "ring-2 ring-red-500" : ""}`}
                 />
               );
-            })
+            }),
           )}
         </div>
       </div>

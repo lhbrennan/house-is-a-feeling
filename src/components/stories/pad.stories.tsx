@@ -1,9 +1,7 @@
 import React from "react";
-import '@/index.css'
+import "@/index.css";
 import type { Story } from "@ladle/react";
-import { Pad as BasePad } from "./pad";
-import { Grid as BaseGrid} from "./grid";
-import { useGrid } from "@/use-grid";
+import { Pad as BasePad } from "../pad";
 import type { PadState } from "@/types";
 
 export const Pad: Story = () => {
@@ -23,11 +21,4 @@ export const Pad: Story = () => {
   };
 
   return <BasePad state={padState} onClick={handleSetPadState} />;
-};
-
-export const Grid: Story = () => {
-    const { grid, toggleCell } = useGrid(5);
-    console.log(grid);
-
-  return <BaseGrid toggleCell={toggleCell} grid={grid} />;
 };
