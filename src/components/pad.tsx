@@ -6,7 +6,7 @@ import type { PadState } from "@/types";
 const PAD_STATES = ['off', 'low', 'medium', 'high'] as const;
 
 const padVariants = cva(
-  "flex items-center justify-center w-10 h-10 rounded-lg outline-none \
+  "flex items-center justify-center w-10 h-10 flex-shrink-0 rounded-lg outline-none \
    transition-colors transition-transform duration-150 \
    hover:scale-105",
   {
@@ -26,7 +26,6 @@ const padVariants = cva(
 
 type PadProps = {
   state?: PadState;
-  // Updated onClick: now only accepts newValue.
   onClick: (newValue: PadState) => void;
 };
 
