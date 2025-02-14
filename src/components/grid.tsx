@@ -1,13 +1,19 @@
 import { Pad } from "./pad";
-import type { GridState } from "@/types";
+import type { GridState, PadState } from "@/types";
 
 type GridProps = {
   grid: GridState;
-  toggleCell: (row: number, col: number, newState: number) => void;
+  toggleCell: (row: number, col: number, newState: PadState) => void;
   numVisibleSteps?: number;
+  currentStep: number | null;
 };
 
-export function Grid({ grid, toggleCell, numVisibleSteps = 16 }: GridProps) {
+export function Grid({
+  grid,
+  toggleCell,
+  numVisibleSteps = 16,
+  currentStep,
+}: GridProps) {
   return (
     <div className="flex flex-col gap-[10px]">
       {grid.map((row, rowIndex) => {
@@ -19,26 +25,36 @@ export function Grid({ grid, toggleCell, numVisibleSteps = 16 }: GridProps) {
         return (
           <div
             key={rowIndex}
-            className="max-w-max mx-auto flex flex-shrink-0"
+            className="mx-auto flex max-w-max flex-shrink-0"
             style={{ gap: "clamp(6px, 3vw, 20px)" }}
           >
-            {beats.map((beat, beatIndex) => (
-              <div
-                key={beatIndex}
-                className="grid grid-cols-4 flex-shrink-0"
-                style={{ gap: "clamp(4px, 2vw, 10px)" }}
-              >
-                {beat.map((cell, colIndex) => (
-                  <Pad
-                    key={colIndex}
-                    state={cell}
-                    onClick={(newState) =>
-                      toggleCell(rowIndex, beatIndex * 4 + colIndex, newState)
-                    }
-                  />
-                ))}
-              </div>
-            ))}
+            {beats.map((beat, beatIndex) => {
+              return (
+                <div
+                  key={beatIndex}
+                  className="grid flex-shrink-0 grid-cols-4"
+                  style={{ gap: "clamp(4px, 2vw, 10px)" }}
+                >
+                  {beat.map((cell, colIndex) => {
+                    const animate = (beatIndex * 4 + colIndex === currentStep) && (cell !== 0);
+                    return (
+                      <Pad
+                        key={colIndex}
+                        animate={animate}
+                        state={cell}
+                        onClick={(newState) =>
+                          toggleCell(
+                            rowIndex,
+                            beatIndex * 4 + colIndex,
+                            newState,
+                          )
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              );
+            })}
           </div>
         );
       })}

@@ -2,8 +2,9 @@ import { useRef } from "react";
 import { cva } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 import type { PadState } from "@/types";
+import "@/index.css";
 
-const PAD_STATES = ['off', 'low', 'medium', 'high'] as const;
+const PAD_STATES = ["off", "low", "medium", "high"] as const;
 
 const padVariants = cva(
   "flex items-center justify-center w-10 h-10 flex-shrink-0 rounded-lg outline-none \
@@ -12,10 +13,10 @@ const padVariants = cva(
   {
     variants: {
       state: {
-        "off": "bg-slate-200",
-        "low": "bg-blue-200",
-        "medium": "bg-blue-400",
-        "high": "bg-blue-600",
+        off: "bg-slate-200",
+        low: "bg-blue-200",
+        medium: "bg-blue-400",
+        high: "bg-blue-600",
       },
     },
     defaultVariants: {
@@ -27,9 +28,15 @@ const padVariants = cva(
 type PadProps = {
   state?: PadState;
   onClick: (newValue: PadState) => void;
+  animate?: boolean;
 };
 
-export function Pad({ state: numericState = 0, onClick, ...props }: PadProps) {
+export function Pad({
+  state: numericState = 0,
+  onClick,
+  animate = false,
+  ...props
+}: PadProps) {
   const state = PAD_STATES[numericState];
 
   // Timer ref for mobile long press detection.
@@ -51,7 +58,7 @@ export function Pad({ state: numericState = 0, onClick, ...props }: PadProps) {
     }
   };
 
-  // Desktop: normal click toggles on/off; meta key (or right click) cycles velocity.
+  // Desktop left-click / cmd-click
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (e.metaKey) {
       onClick(cycleState(numericState));
@@ -61,7 +68,7 @@ export function Pad({ state: numericState = 0, onClick, ...props }: PadProps) {
     }
   };
 
-  // Mobile: start a timer on touch start for long press.
+  // Mobile long-press detection
   const handleTouchStart = () => {
     longPressTimer.current = setTimeout(() => {
       onClick(cycleState(numericState));
@@ -69,7 +76,6 @@ export function Pad({ state: numericState = 0, onClick, ...props }: PadProps) {
     }, longPressThreshold);
   };
 
-  // If the touch ends quickly, treat it as a quick tap.
   const handleTouchEnd = () => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
@@ -79,7 +85,7 @@ export function Pad({ state: numericState = 0, onClick, ...props }: PadProps) {
     }
   };
 
-  // Prevent default context menu and instead use right click to cycle on desktop.
+  // Right-click --> prevent default, cycle state
   const handleContextMenu = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     onClick(cycleState(numericState));
@@ -88,13 +94,14 @@ export function Pad({ state: numericState = 0, onClick, ...props }: PadProps) {
   return (
     <button
       type="button"
+      data-animate={animate.toString()}
       onClick={handleClick}
       onContextMenu={handleContextMenu}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       aria-label={`Pad ${state}`}
-      className={cn(padVariants({ state }))}
+      className={cn(padVariants({ state }), animate && "pop-animation")}
       {...props}
-    ></button>
+    />
   );
 }

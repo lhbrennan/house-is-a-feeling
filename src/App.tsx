@@ -4,11 +4,13 @@ import audioEngine from "./audio-engine";
 import { Button } from "@/components/ui/button";
 import type { LoopLength } from "./constants";
 import { useGrid } from "./use-grid";
+import { Grid } from "./components/grid";
 
 const NUM_CHANNELS = 3; // one per drum sample (C2, D2, E2)
 const GRID_RESOLUTION = "16n"; // 16th notes
 const CHANNEL_NOTES = ["C2", "D2", "E2"];
-const STEPS_MAP: Record<string, number> = { // Map loop length in measures to # of steps
+const STEPS_MAP: Record<string, number> = {
+  // Map loop length in measures to # of steps
   "1m": 16,
   "2m": 32,
   "4m": 64,
@@ -146,32 +148,12 @@ function App() {
         <span>{Math.round(swing * 100)}%</span>
       </div>
 
-      {/* Bottom Section: Drum Grid */}
-      <div className="rounded border p-4">
-        {/* Show only the first numVisibleSteps columns of the master grid */}
-        <div
-          className="grid gap-1"
-          style={{
-            gridTemplateColumns: `repeat(${numVisibleSteps}, 2rem)`,
-          }}
-        >
-          {grid.map((row, rowIndex) =>
-            row.slice(0, numVisibleSteps).map((cell, colIndex) => {
-              const animate = colIndex === currentStep;
-              return (
-                <div
-                  key={`${rowIndex}-${colIndex}`}
-                  onClick={() => toggleCell(rowIndex, colIndex)}
-                  data-animate={animate.toString()}
-                  className={`h-8 w-8 cursor-pointer border ${
-                    cell ? "bg-blue-500" : "bg-gray-200"
-                  } ${animate ? "ring-2 ring-red-500" : ""}`}
-                />
-              );
-            }),
-          )}
-        </div>
-      </div>
+      <Grid
+        grid={grid}
+        toggleCell={toggleCell}
+        numVisibleSteps={numVisibleSteps}
+        currentStep={currentStep}
+      />
     </div>
   );
 }
