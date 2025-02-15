@@ -2,34 +2,57 @@ import * as Tone from "tone";
 import type { LoopLength } from "./constants";
 
 let isInitialized = false;
-let sampler: Tone.Sampler | null = null;
+
+type Channel = {
+  player: Tone.Player;
+  volume: Tone.Volume;
+  panner: Tone.Panner;
+};
+
+const samples = {
+  C2: "/samples/kick.wav",
+  D2: "/samples/clap.wav",
+  E2: "/samples/hat.wav",
+};
+
+const channels: Record<string, Channel> = {};
 
 const audioEngine = {
   /**
    * Initializes the audio engine:
    *  - Starts the AudioContext (must be done on a user gesture)
-   *  - Creates a Sampler with local samples and waits for the buffers to load.
-   *  - Sets up the global Transport (BPM, looping, etc.).
+   *  - Creates a Tone.Players instance to load local samples.
+   *  - Sets up a per-channel chain (Player -> Volume -> Panner -> Destination).
+   *  - Configures the global Transport.
    */
   async init() {
     if (isInitialized) return;
     await Tone.start();
 
-    sampler = new Tone.Sampler({
-      urls: {
-        C2: "kick.wav",
-        D2: "clap.wav",
-        E2: "hat.wav",
-      },
-      baseUrl: "/samples/",
-      onload: () => {
-        console.log("Sampler loaded (local samples)!");
-      },
-    }).toDestination();
+    const players = new Tone.Players(
+      samples,
+      () => {
+        console.log("All players loaded (local samples)!");
+      }
+    );
 
+    Object.keys(samples).forEach((note) => {
+      const player = players.player(note);
+      const volume = new Tone.Volume(0);
+      const panner = new Tone.Panner(0);
+      
+      // Chain the nodes: player -> volume -> panner -> destination.
+      player.chain(volume, panner, Tone.getDestination());
+      
+      // Store the channel for later control.
+      channels[note] = { player, volume, panner };
+    });
+
+    // Wait for all Tone buffers (players) to be loaded.
     await Tone.loaded();
     console.log("All Tone buffers are loaded.");
 
+    // Configure the global transport.
     const transport = Tone.getTransport();
     transport.bpm.value = 120;
     transport.loop = true;
@@ -57,15 +80,30 @@ const audioEngine = {
   },
 
   playNote(note: string, time: number) {
-    if (sampler) {
-      sampler.triggerAttackRelease(note, "16n", time);
+    if (channels[note]) {
+      channels[note].player.start(time);
+    }
+  },
+
+  setChannelVolume(note: string, volumeDb: number) {
+    if (channels[note]) {
+      channels[note].volume.volume.value = volumeDb;
+    }
+  },
+
+  setChannelPan(note: string, panValue: number) {
+    if (channels[note]) {
+      channels[note].panner.pan.value = panValue;
     }
   },
 
   dispose() {
     this.stopTransport();
-    sampler?.dispose();
-    sampler = null;
+    Object.values(channels).forEach(({ player, volume, panner }) => {
+      player.dispose();
+      volume.dispose();
+      panner.dispose();
+    });
     isInitialized = false;
   },
 };
