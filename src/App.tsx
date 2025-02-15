@@ -2,18 +2,31 @@ import React, { useRef, useState, useEffect } from "react";
 import * as Tone from "tone";
 import audioEngine from "./audio-engine";
 import { Button } from "@/components/ui/button";
-import type { LoopLength } from "./constants";
+import { ChannelStrip } from "@/components/channel-strip";
+import { Grid } from "@/components/grid";
 import { useGrid } from "./use-grid";
-import { Grid } from "./components/grid";
+import type { LoopLength } from "./constants";
 
 const NUM_CHANNELS = 3; // one per drum sample (C2, D2, E2)
 const GRID_RESOLUTION = "16n"; // 16th notes
-const CHANNEL_NOTES = ["C2", "D2", "E2"];
+const CHANNEL_NOTES = ["Hat", "Clap", "Kick"];
 const STEPS_MAP: Record<string, number> = {
-  // Map loop length in measures to # of steps
   "1m": 16,
   "2m": 32,
   "4m": 64,
+};
+
+type ChannelControls = {
+  mute: boolean;
+  solo: boolean;
+  volume: number; // normalized 0 to 1
+  pan: number; // -1 (left) to 1 (right)
+};
+
+const initialChannelControls: Record<string, ChannelControls> = {
+  Hat: { mute: false, solo: false, volume: 1, pan: 0 },
+  Clap: { mute: false, solo: false, volume: 1, pan: 0 },
+  Kick: { mute: false, solo: false, volume: 1, pan: 0 },
 };
 
 function App() {
@@ -21,6 +34,9 @@ function App() {
   const [loopLength, setLoopLength] = useState<LoopLength>("1m");
   const [currentStep, setCurrentStep] = useState<number | null>(null);
   const [swing, setSwing] = useState(0);
+  const [channelControls, setChannelControls] = useState(
+    initialChannelControls,
+  );
   const numVisibleSteps = STEPS_MAP[loopLength];
 
   const { grid, gridRef, toggleCell, duplicatePattern } = useGrid(NUM_CHANNELS);
@@ -49,14 +65,14 @@ function App() {
       });
 
       Tone.getDraw().schedule(() => {
-        setCurrentStep(step); // Update the current step so we can animate it
+        setCurrentStep(step);
       }, scheduledTime);
 
       stepCounterRef.current = (step + 1) % numVisibleSteps;
     }, GRID_RESOLUTION);
   };
 
-  // When loopLength changes, update transport and recreate loop
+  // When loopLength changes, update transport and recreate loop.
   useEffect(() => {
     audioEngine.setLoopLength(loopLength);
     stepCounterRef.current = 0;
@@ -101,6 +117,22 @@ function App() {
   const handleStop = () => {
     audioEngine.stopTransport();
   };
+
+  // Effect to synchronize channel controls with the audio engine.
+  useEffect(() => {
+    const anySolo = Object.values(channelControls).some((ctrl) => ctrl.solo);
+
+    // For each channel, compute effective mute and update the engine.
+    Object.keys(channelControls).forEach((note) => {
+      const { mute, solo, volume, pan } = channelControls[note];
+      // Compute effective mute: mute if the channel's mute is true, or if any channel is soloed and this one isn't soloed.
+      const effectiveMute = mute || (anySolo && !solo);
+      const volumeDb = effectiveMute ? -Infinity : Tone.gainToDb(volume);
+      console.log(`Setting ${note} volume to ${volumeDb} dB`);
+      audioEngine.setChannelVolume(note, volumeDb);
+      audioEngine.setChannelPan(note, pan);
+    });
+  }, [channelControls]);
 
   return (
     <div className="space-y-6 p-4">
@@ -148,12 +180,62 @@ function App() {
         <span>{Math.round(swing * 100)}%</span>
       </div>
 
-      <Grid
-        grid={grid}
-        toggleCell={toggleCell}
-        numVisibleSteps={numVisibleSteps}
-        currentStep={currentStep}
-      />
+      <div className="flex">
+        {/* Channel Controls */}
+        <div className="space-y-4 rounded border p-4">
+          {CHANNEL_NOTES.map((note) => {
+            const { volume, mute, solo, pan } = channelControls[note];
+            return (
+              <div key={note} className="flex items-center space-x-4">
+                <ChannelStrip
+                  label={note}
+                  volume={volume}
+                  changeVolume={(volume) =>
+                    setChannelControls((prev) => ({
+                      ...prev,
+                      [note]: {
+                        ...prev[note],
+                        volume,
+                      },
+                    }))
+                  }
+                  mute={mute}
+                  toggleMute={() =>
+                    setChannelControls((prev) => ({
+                      ...prev,
+                      [note]: { ...prev[note], mute: !prev[note].mute },
+                    }))
+                  }
+                  solo={solo}
+                  toggleSolo={() =>
+                    setChannelControls((prev) => ({
+                      ...prev,
+                      [note]: { ...prev[note], solo: !prev[note].solo },
+                    }))
+                  }
+                  pan={pan}
+                  changePan={(newValue) =>
+                    setChannelControls((prev) => ({
+                      ...prev,
+                      [note]: {
+                        ...prev[note],
+                        pan: newValue,
+                      },
+                    }))
+                  }
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        <Grid
+          grid={grid}
+          toggleCell={toggleCell}
+          numVisibleSteps={numVisibleSteps}
+          currentStep={currentStep}
+        />
+      </div>
     </div>
   );
 }

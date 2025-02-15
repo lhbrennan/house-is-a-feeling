@@ -10,9 +10,9 @@ type Channel = {
 };
 
 const samples = {
-  C2: "/samples/kick.wav",
-  D2: "/samples/clap.wav",
-  E2: "/samples/hat.wav",
+  Hat: "/samples/hat.wav",
+  Clap: "/samples/clap.wav",
+  Kick: "/samples/kick.wav",
 };
 
 const channels: Record<string, Channel> = {};
