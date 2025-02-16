@@ -135,23 +135,56 @@ function App() {
   }, [channelControls]);
 
   return (
-    <div className="space-y-6 p-4">
-      {/* Top Section: Transport and Settings */}
-      <div className="flex flex-col space-y-4 rounded border p-4">
-        <div className="flex items-center space-x-4">
-          <Button onClick={handleStart}>Start</Button>
-          <Button onClick={handleStop}>Stop</Button>
-          <label className="flex items-center space-x-2">
-            <span>BPM:</span>
-            <input
-              type="number"
-              value={bpm}
-              onChange={handleBpmChange}
-              className="w-20 rounded border p-1"
-            />
-          </label>
+    <div className="flex h-screen justify-center">
+      <div className="space-y-6 p-4">
+        {/* Top Section: Transport and Settings */}
+        <div className="flex flex-col space-y-4 rounded border p-4">
+          <div className="flex items-center space-x-4">
+            <Button onClick={handleStart}>Start</Button>
+            <Button onClick={handleStop}>Stop</Button>
+            <label className="flex items-center space-x-2">
+              <span>BPM:</span>
+              <input
+                type="number"
+                value={bpm}
+                onChange={handleBpmChange}
+                className="w-20 rounded border p-1"
+              />
+            </label>
+            <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2">
+                <span>Swing:</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="0.5"
+                  step="0.01"
+                  value={swing}
+                  onChange={(e) => setSwing(parseFloat(e.target.value))}
+                  className="w-32"
+                />
+                <span>{Math.round(swing * 100)}%</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center space-x-2">
+  
+        <div className="flex">
+          <ChannelControls
+            channelControls={channelControls}
+            setChannelControls={setChannelControls}
+            channelNotes={CHANNEL_NOTES}
+          />
+  
+          <Grid
+            grid={grid}
+            toggleCell={toggleCell}
+            numVisibleSteps={numVisibleSteps}
+            currentStep={currentStep}
+          />
+        </div>
+  
+        <div className="flex items-center gap-3">
           <span>Loop Length:</span>
           <select
             value={loopLength}
@@ -164,35 +197,6 @@ function App() {
           </select>
           <Button onClick={handleDuplicatePattern}>Duplicate Pattern</Button>
         </div>
-      </div>
-
-      <div className="flex items-center space-x-2">
-        <span>Swing:</span>
-        <input
-          type="range"
-          min="0"
-          max="0.5"
-          step="0.01"
-          value={swing}
-          onChange={(e) => setSwing(parseFloat(e.target.value))}
-          className="w-32"
-        />
-        <span>{Math.round(swing * 100)}%</span>
-      </div>
-
-      <div className="flex">
-        <ChannelControls
-          channelControls={channelControls}
-          setChannelControls={setChannelControls}
-          channelNotes={CHANNEL_NOTES}
-        />
-
-        <Grid
-          grid={grid}
-          toggleCell={toggleCell}
-          numVisibleSteps={numVisibleSteps}
-          currentStep={currentStep}
-        />
       </div>
     </div>
   );
