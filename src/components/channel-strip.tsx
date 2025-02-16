@@ -26,7 +26,7 @@ export function ChannelStrip({
   changePan,
 }: ChannelStripProps) {
   return (
-    <div className="flex h-10 items-center justify-end">
+    <div className="flex h-10 items-center justify-between min-w-md">
       <PanSlider
         value={pan}
         onChange={changePan}

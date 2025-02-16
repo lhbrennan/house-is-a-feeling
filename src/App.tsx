@@ -2,9 +2,9 @@ import React, { useRef, useState, useEffect } from "react";
 import * as Tone from "tone";
 import audioEngine from "./audio-engine";
 import { Button } from "@/components/ui/button";
-import { ChannelStrip } from "@/components/channel-strip";
 import { Grid } from "@/components/grid";
 import { useGrid } from "./use-grid";
+import { ChannelControls } from "@/components/channel-controls";
 import type { LoopLength } from "./constants";
 
 const NUM_CHANNELS = 3; // one per drum sample (C2, D2, E2)
@@ -16,14 +16,14 @@ const STEPS_MAP: Record<string, number> = {
   "4m": 64,
 };
 
-type ChannelControls = {
+type ChannelControlsType = {
   mute: boolean;
   solo: boolean;
   volume: number; // normalized 0 to 1
   pan: number; // -1 (left) to 1 (right)
 };
 
-const initialChannelControls: Record<string, ChannelControls> = {
+const initialChannelControls: Record<string, ChannelControlsType> = {
   Hat: { mute: false, solo: false, volume: 1, pan: 0 },
   Clap: { mute: false, solo: false, volume: 1, pan: 0 },
   Kick: { mute: false, solo: false, volume: 1, pan: 0 },
@@ -181,53 +181,11 @@ function App() {
       </div>
 
       <div className="flex">
-        {/* Channel Controls */}
-        <div className="space-y-4 rounded border p-4">
-          {CHANNEL_NOTES.map((note) => {
-            const { volume, mute, solo, pan } = channelControls[note];
-            return (
-              <div key={note} className="flex items-center space-x-4">
-                <ChannelStrip
-                  label={note}
-                  volume={volume}
-                  changeVolume={(volume) =>
-                    setChannelControls((prev) => ({
-                      ...prev,
-                      [note]: {
-                        ...prev[note],
-                        volume,
-                      },
-                    }))
-                  }
-                  mute={mute}
-                  toggleMute={() =>
-                    setChannelControls((prev) => ({
-                      ...prev,
-                      [note]: { ...prev[note], mute: !prev[note].mute },
-                    }))
-                  }
-                  solo={solo}
-                  toggleSolo={() =>
-                    setChannelControls((prev) => ({
-                      ...prev,
-                      [note]: { ...prev[note], solo: !prev[note].solo },
-                    }))
-                  }
-                  pan={pan}
-                  changePan={(newValue) =>
-                    setChannelControls((prev) => ({
-                      ...prev,
-                      [note]: {
-                        ...prev[note],
-                        pan: newValue,
-                      },
-                    }))
-                  }
-                />
-              </div>
-            );
-          })}
-        </div>
+        <ChannelControls
+          channelControls={channelControls}
+          setChannelControls={setChannelControls}
+          channelNotes={CHANNEL_NOTES}
+        />
 
         <Grid
           grid={grid}
