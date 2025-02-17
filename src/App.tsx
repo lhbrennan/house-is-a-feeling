@@ -28,7 +28,7 @@ import { CHANNEL_NOTES, type ChannelNote } from "./constants";
 import type { LoopLength } from "./constants";
 
 // ─── Constants ──────────────────────────────────────────────────
-const NUM_CHANNELS = 3;
+const NUM_CHANNELS = CHANNEL_NOTES.length;
 const GRID_RESOLUTION = "16n";
 const STEPS_MAP: Record<string, number> = {
   "1m": 16,
@@ -43,17 +43,13 @@ type ChannelControlsType = {
   pan: number; // -1 (left) to +1 (right) // TODO: can you type this in TS?
 };
 
-const initialChannelControls: Record<string, ChannelControlsType> = {
-  Hat: { mute: false, solo: false, volume: 1, pan: 0 },
-  Clap: { mute: false, solo: false, volume: 1, pan: 0 },
-  Kick: { mute: false, solo: false, volume: 1, pan: 0 },
-};
+const initialChannelControls: Record<string, ChannelControlsType> = Object.fromEntries(
+  CHANNEL_NOTES.map(note => [note, { mute: false, solo: false, volume: 1, pan: 0 }])
+);
 
-const defaultDelaySettings = {
-  Hat: { time: "8n", wet: 0.0, feedback: 0.25 },
-  Clap: { time: "8n", wet: 0.0, feedback: 0.25 },
-  Kick: { time: "8n", wet: 0.0, feedback: 0.25 },
-};
+const defaultDelaySettings: Record<string, { time: string; wet: number; feedback: number }> = Object.fromEntries(
+  CHANNEL_NOTES.map(note => [note, { time: "8n", wet: 0.0, feedback: 0.25 }])
+);
 
 function App() {
   const [bpm, setBpm] = useState(120);
@@ -295,7 +291,7 @@ function App() {
           />
 
           {/* Right: Simple Delay "Wet" slider + Advanced button */}
-          <div className="ml-4 flex flex-col space-y-4 h-10">
+          <div className="ml-4 flex h-10 flex-col space-y-4">
             {CHANNEL_NOTES.map((channel) => {
               const { wet } = delaySettings[channel];
               return (

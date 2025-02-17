@@ -11,9 +11,14 @@ type Channel = {
 };
 
 const samples = {
-  Hat: "/samples/hat.wav",
-  Clap: "/samples/clap.wav",
-  Kick: "/samples/kick.wav",
+  Perc2:"/samples/perc_2.wav",
+  Perc1:"/samples/perc_1.wav",
+  OpenHat:"/samples/open_hat_1.wav",
+  ClosedHat:"/samples/closed_hat.wav",
+  Snare:"/samples/snare.wav",
+  Clap:"/samples/clap.wav",
+  Kick2:"/samples/kick_thump.wav",
+  Kick1:"/samples/kick.wav",
 };
 
 const channels: Record<string, Channel> = {};
