@@ -1,5 +1,6 @@
 import React from "react";
 import { ChannelStrip } from "@/components/channel-strip";
+import type { ChannelNote } from "@/constants";
 
 export type ChannelControl = {
   mute: boolean;
@@ -13,7 +14,7 @@ type ChannelControlsProps = {
   setChannelControls: React.Dispatch<
     React.SetStateAction<Record<string, ChannelControl>>
   >;
-  channelNotes: string[];
+  channelNotes: ChannelNote[];
 };
 
 export function ChannelControls({

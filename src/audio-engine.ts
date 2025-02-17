@@ -7,6 +7,7 @@ type Channel = {
   player: Tone.Player;
   volume: Tone.Volume;
   panner: Tone.Panner;
+  delay: Tone.FeedbackDelay;
 };
 
 const samples = {
@@ -22,7 +23,7 @@ const audioEngine = {
    * Initializes the audio engine:
    *  - Starts the AudioContext (must be done on a user gesture)
    *  - Creates a Tone.Players instance to load local samples.
-   *  - Sets up a per-channel chain (Player -> Volume -> Panner -> Destination).
+   *  - Sets up a per-channel chain (Player -> Volume -> Delay -> Panner -> Destination). // TODO: are you sure you want Panner after Delay? If yes, update UI to reflect this path
    *  - Configures the global Transport.
    */
   async init() {
@@ -40,12 +41,18 @@ const audioEngine = {
       const player = players.player(note);
       const volume = new Tone.Volume(0);
       const panner = new Tone.Panner(0);
-      
-      // Chain the nodes: player -> volume -> panner -> destination.
-      player.chain(volume, panner, Tone.getDestination());
-      
-      // Store the channel for later control.
-      channels[note] = { player, volume, panner };
+
+      // First argument: Delay time (e.g. "8n" = eighth note)
+      // Second argument: Feedback amount (0.5 = 50%)
+      const feedbackDelay = new Tone.FeedbackDelay("8n", 0.5);
+      player.chain(volume, feedbackDelay, panner, Tone.getDestination());
+
+      channels[note] = {
+        player,
+        volume,
+        panner,
+        delay: feedbackDelay,
+      };
     });
 
     // Wait for all Tone buffers (players) to be loaded.
@@ -97,12 +104,31 @@ const audioEngine = {
     }
   },
 
+  setChannelDelayTime(note: string, delayTime: string | number) {
+    if (channels[note]) {
+      channels[note].delay.delayTime.value = delayTime;
+    }
+  },
+
+  setChannelDelayWet(note: string, wetValue: number) {
+    if (channels[note]) {
+      channels[note].delay.wet.value = wetValue;
+    }
+  },
+
+  setChannelDelayFeedback(note: string, feedbackValue: number) { // 0.2–0.6 is a good range. 0.0 = no repeats, 1.0 = infinite repeats
+    if (channels[note]) {
+      channels[note].delay.feedback.value = feedbackValue;
+    }
+  },
+
   dispose() {
     this.stopTransport();
-    Object.values(channels).forEach(({ player, volume, panner }) => {
+    Object.values(channels).forEach(({ player, volume, panner, delay }) => {
       player.dispose();
       volume.dispose();
       panner.dispose();
+      delay.dispose();
     });
     isInitialized = false;
   },
