@@ -1,4 +1,4 @@
-import { Pad } from "./pad";
+import { Pad, PAD_COLORS } from "./pad";
 import type { GridState, PadState } from "@/types";
 
 type GridProps = {
@@ -36,12 +36,14 @@ export function Grid({
                   style={{ gap: "clamp(4px, 2vw, 10px)" }}
                 >
                   {beat.map((cell, colIndex) => {
-                    const animate = (beatIndex * 4 + colIndex === currentStep) && (cell !== 0);
+                    const animate =
+                      beatIndex * 4 + colIndex === currentStep && cell !== 0;
                     return (
                       <Pad
                         key={colIndex}
                         animate={animate}
                         state={cell}
+                        color={PAD_COLORS[rowIndex]}
                         onClick={(newState) =>
                           toggleCell(
                             rowIndex,

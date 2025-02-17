@@ -1,38 +1,58 @@
 import { useRef } from "react";
-import { cva } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 import type { PadState } from "@/types";
 import "@/index.css";
 
+const PAD_COLORS = [
+  "violet",
+  "violet",
+  "cyan",
+  "cyan",
+  "yellow",
+  "yellow",
+  "red",
+  "red",
+] as const;
+
 const PAD_STATES = ["off", "low", "medium", "high"] as const;
 
-const padVariants = cva(
-  "flex items-center justify-center w-10 h-10 flex-shrink-0 rounded-lg outline-none \
-   transition-colors transition-transform duration-150 \
-   hover:scale-105",
-  {
-    variants: {
-      state: {
-        off: "bg-slate-200",
-        low: "bg-blue-200",
-        medium: "bg-blue-400",
-        high: "bg-blue-600",
-      },
-    },
-    defaultVariants: {
-      state: "off",
-    },
+const colorRamps = {
+  violet: {
+    off: "bg-slate-200",
+    low: "bg-violet-200",
+    medium: "bg-violet-400",
+    high: "bg-violet-600",
   },
-);
+  cyan: {
+    off: "bg-slate-200",
+    low: "bg-cyan-200",
+    medium: "bg-cyan-400",
+    high: "bg-cyan-600",
+  },
+  yellow: {
+    off: "bg-slate-200",
+    low: "bg-yellow-200",
+    medium: "bg-yellow-400",
+    high: "bg-yellow-600",
+  },
+  red: {
+    off: "bg-slate-200",
+    low: "bg-red-200",
+    medium: "bg-red-400",
+    high: "bg-red-600",
+  },
+} as const;
 
 type PadProps = {
   state?: PadState;
+  color: (typeof PAD_COLORS)[number];
   onClick: (newValue: PadState) => void;
   animate?: boolean;
 };
 
-export function Pad({
+function Pad({
   state: numericState = 0,
+  color,
   onClick,
   animate = false,
   ...props
@@ -41,7 +61,7 @@ export function Pad({
 
   // Timer ref for mobile long press detection.
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
-  const longPressThreshold = 500; // milliseconds
+  const longPressThreshold = 500; // ms
 
   const cycleState = (current: PadState): PadState => {
     switch (current) {
@@ -52,7 +72,6 @@ export function Pad({
       case 2:
         return 1;
       case 1:
-        return 0;
       default:
         return 0;
     }
@@ -91,6 +110,12 @@ export function Pad({
     onClick(cycleState(numericState));
   };
 
+  const baseClasses =
+    "flex items-center justify-center w-10 h-10 flex-shrink-0 rounded-lg outline-none \
+     transition-colors transition-transform duration-150 hover:scale-105";
+
+  const colorClass = colorRamps[color][state];
+
   return (
     <button
       type="button"
@@ -100,8 +125,10 @@ export function Pad({
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       aria-label={`Pad ${state}`}
-      className={cn(padVariants({ state }), animate && "pop-animation")}
+      className={cn(baseClasses, colorClass, animate && "pop-animation")}
       {...props}
     />
   );
 }
+
+export { Pad, PAD_COLORS };
