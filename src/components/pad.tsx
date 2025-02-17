@@ -26,8 +26,8 @@ const colorRamps = {
   cyan: {
     off: "bg-slate-200",
     low: "bg-cyan-200",
-    medium: "bg-cyan-400",
-    high: "bg-cyan-600",
+    medium: "bg-cyan-300",
+    high: "bg-cyan-500",
   },
   yellow: {
     off: "bg-slate-200",

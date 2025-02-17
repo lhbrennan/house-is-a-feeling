@@ -11,14 +11,14 @@ type Channel = {
 };
 
 const samples = {
-  Perc2:"/samples/perc_2.wav",
-  Perc1:"/samples/perc_1.wav",
-  OpenHat:"/samples/open_hat_1.wav",
-  ClosedHat:"/samples/closed_hat.wav",
-  Snare:"/samples/snare.wav",
-  Clap:"/samples/clap.wav",
-  Kick2:"/samples/kick_thump.wav",
-  Kick1:"/samples/kick.wav",
+  Perc2: "/samples/perc_2.wav",
+  Perc1: "/samples/perc_1.wav",
+  OpenHat: "/samples/open_hat_1.wav",
+  ClosedHat: "/samples/closed_hat.wav",
+  Snare: "/samples/snare.wav",
+  Clap: "/samples/clap.wav",
+  Kick2: "/samples/kick_thump.wav",
+  Kick1: "/samples/kick.wav",
 };
 
 const channels: Record<string, Channel> = {};
@@ -35,12 +35,9 @@ const audioEngine = {
     if (isInitialized) return;
     await Tone.start();
 
-    const players = new Tone.Players(
-      samples,
-      () => {
-        console.log("All players loaded (local samples)!");
-      }
-    );
+    const players = new Tone.Players(samples, () => {
+      console.log("All players loaded (local samples)!");
+    });
 
     Object.keys(samples).forEach((note) => {
       const player = players.player(note);
@@ -91,10 +88,35 @@ const audioEngine = {
     console.log(`Loop length set to ${loopLength}`);
   },
 
-  playNote(note: string, time: number) {
-    if (channels[note]) {
-      channels[note].player.start(time);
-    }
+  playNote(note: string, time: number, gain: number) {
+    const channel = channels[note];
+    if (!channel) return;
+
+    if (gain <= 0) return;
+
+    // 1) create an ephemeral Gain node for this hit
+    const noteGain = new Tone.Gain(gain);
+    // connect ephemeral gain to the channel's Volume node
+    noteGain.connect(channel.volume);
+
+    // 2) create a new ephemeral Player using the same sample buffer
+    const p = new Tone.Player({
+      url: channel.player.buffer, // reuse loaded buffer
+      onload: () => {}, // optional
+    });
+
+    // connect the new Player into the ephemeral gain node
+    p.connect(noteGain);
+
+    // 3) schedule it to start
+    p.start(time);
+
+    // 4) schedule disposal to free resources
+    const sampleDuration = channel.player.buffer?.duration || 1;
+    Tone.getTransport().scheduleOnce(() => {
+      p.dispose();
+      noteGain.dispose();
+    }, time + sampleDuration);
   },
 
   setChannelVolume(note: string, volumeDb: number) {

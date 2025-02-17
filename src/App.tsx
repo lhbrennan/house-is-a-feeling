@@ -25,6 +25,7 @@ import { Grid } from "@/components/grid";
 import { useGrid } from "./use-grid";
 import { ChannelControls } from "@/components/channel-controls";
 import { CHANNEL_NOTES, type ChannelNote } from "./constants";
+import type { PadState } from "./types";
 import type { LoopLength } from "./constants";
 
 // ─── Constants ──────────────────────────────────────────────────
@@ -43,13 +44,33 @@ type ChannelControlsType = {
   pan: number; // -1 (left) to +1 (right) // TODO: can you type this in TS?
 };
 
-const initialChannelControls: Record<string, ChannelControlsType> = Object.fromEntries(
-  CHANNEL_NOTES.map(note => [note, { mute: false, solo: false, volume: 1, pan: 0 }])
+const initialChannelControls: Record<string, ChannelControlsType> =
+  Object.fromEntries(
+    CHANNEL_NOTES.map((note) => [
+      note,
+      { mute: false, solo: false, volume: 1, pan: 0 },
+    ]),
+  );
+
+const defaultDelaySettings: Record<
+  string,
+  { time: string; wet: number; feedback: number }
+> = Object.fromEntries(
+  CHANNEL_NOTES.map((note) => [note, { time: "8n", wet: 0.0, feedback: 0.25 }]),
 );
 
-const defaultDelaySettings: Record<string, { time: string; wet: number; feedback: number }> = Object.fromEntries(
-  CHANNEL_NOTES.map(note => [note, { time: "8n", wet: 0.0, feedback: 0.25 }])
-);
+function velocityToLinear(velocity: PadState) {
+  switch (velocity) {
+    case 3:
+      return 1.0;
+    case 2:
+      return 0.6;
+    case 1:
+      return 0.2;
+    default:
+      return 0;
+  }
+}
 
 function App() {
   const [bpm, setBpm] = useState(120);
@@ -63,7 +84,7 @@ function App() {
   const [engineReady, setEngineReady] = useState(false);
   const [advancedChannel, setAdvancedChannel] = useState<ChannelNote | null>(
     null,
-  ); // null = closed, or "Hat"/"Clap"/"Kick")
+  ); // null = closed, or a channel name
 
   const numVisibleSteps = STEPS_MAP[loopLength];
   const { grid, gridRef, toggleCell, duplicatePattern } = useGrid(NUM_CHANNELS);
@@ -91,8 +112,14 @@ function App() {
       }
 
       gridRef.current.forEach((row, channelIndex) => {
-        if (row[step]) {
-          audioEngine.playNote(CHANNEL_NOTES[channelIndex], scheduledTime);
+        const hit = row[step];
+        if (hit > 0) {
+          const gain = velocityToLinear(hit);
+          audioEngine.playNote(
+            CHANNEL_NOTES[channelIndex],
+            scheduledTime,
+            gain,
+          );
         }
       });
 
