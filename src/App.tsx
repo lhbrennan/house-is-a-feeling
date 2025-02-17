@@ -295,17 +295,16 @@ function App() {
           />
 
           {/* Right: Simple Delay "Wet" slider + Advanced button */}
-          <div className="ml-4 flex flex-col space-y-4">
+          <div className="ml-4 flex flex-col space-y-4 h-10">
             {CHANNEL_NOTES.map((channel) => {
               const { wet } = delaySettings[channel];
               return (
-                <div key={channel} className="flex rounded border p-3">
-                  <div className="mb-2">
+                <div key={channel} className="flex">
+                  <div>
                     <Label className="mr-2">
-                      Amount {(wet * 100).toFixed(0)}%
+                      Delay {(wet * 100).toFixed(0)}%
                     </Label>
 
-                    {/* Replace <input type="range"> with shadcn/ui <Slider> */}
                     <Slider
                       value={[wet]}
                       onValueChange={([val]) =>
