@@ -118,6 +118,32 @@ function App() {
     audioEngine.stopTransport();
   };
 
+  /* spacebar listener */
+  useEffect(() => {
+    const handleSpaceKey = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      if (e.code === "Space") {
+        e.preventDefault();
+        if (Tone.getTransport().state === "started") {
+          handleStop();
+        } else {
+          handleStart();
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleSpaceKey);
+    return () => {
+      window.removeEventListener("keydown", handleSpaceKey);
+    };
+  }, []);
+
   // Effect to synchronize channel controls with the audio engine.
   useEffect(() => {
     const anySolo = Object.values(channelControls).some((ctrl) => ctrl.solo);
@@ -168,14 +194,14 @@ function App() {
             </div>
           </div>
         </div>
-  
+
         <div className="flex">
           <ChannelControls
             channelControls={channelControls}
             setChannelControls={setChannelControls}
             channelNotes={CHANNEL_NOTES}
           />
-  
+
           <Grid
             grid={grid}
             toggleCell={toggleCell}
@@ -183,7 +209,7 @@ function App() {
             currentStep={currentStep}
           />
         </div>
-  
+
         <div className="flex items-center gap-3">
           <span>Loop Length:</span>
           <select
