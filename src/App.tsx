@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Settings } from "lucide-react";
+
 import audioEngine from "./audio-engine";
 import { Grid } from "@/components/grid";
 import { useGrid } from "./use-grid";
@@ -36,11 +37,11 @@ const STEPS_MAP: Record<string, number> = {
   "4m": 64,
 };
 
-type ChannelControlsType = {
+export type ChannelControlsType = {
   mute: boolean;
   solo: boolean;
-  volume: number; // normalized 0 to 1
-  pan: number; // -1 (left) to +1 (right)
+  volume: number; // normalized 0..1
+  pan: number;    // -1..1
 };
 
 const initialChannelControls: Record<string, ChannelControlsType> =
@@ -51,15 +52,32 @@ const initialChannelControls: Record<string, ChannelControlsType> =
     ]),
   );
 
-const initialChannelEffects: Record<
-  string,
-  { time: string; wet: number; feedback: number; reverbSend: number }
-> = Object.fromEntries(
-  CHANNEL_NOTES.map((note) => [
-    note,
-    { time: "8n", wet: 0.0, feedback: 0.25, reverbSend: 0 },
-  ]),
-);
+type ChannelEffectsType = {
+  time: string; // TODO: rename this to delayTime // TODO: type this better
+  wet: number; // TODO: rename this to delayWet
+  feedback: number; // TODO: rename this to delayFeedback
+  reverbSend: number;
+};
+
+const initialChannelEffects: Record<string, ChannelEffectsType> =
+  Object.fromEntries(
+    CHANNEL_NOTES.map((note) => [
+      note,
+      { time: "8n", wet: 0.0, feedback: 0.25, reverbSend: 0 },
+    ]),
+  );
+
+type GlobalReverbSettings = {
+  decay: number;
+  preDelay: number;
+  wet: number;
+};
+
+const initialGlobalReverbSettings: GlobalReverbSettings = {
+  decay: 2.1,
+  preDelay: 0.05,
+  wet: 1,
+};
 
 function getNormalizedVelocity(padState: PadState) {
   switch (padState) {
@@ -83,23 +101,27 @@ function App() {
   const [loopLength, setLoopLength] = useState<LoopLength>("1m");
   const [currentStep, setCurrentStep] = useState<number | null>(null);
   const [swing, setSwing] = useState(0);
+
   const [channelControls, setChannelControls] = useState(
     initialChannelControls,
   );
   const [channelEffects, setChannelEffects] = useState(initialChannelEffects);
+  const [globalReverbSettings, setGlobalReverbSettings] = useState(
+    initialGlobalReverbSettings,
+  );
+
+  // Dialog states
   const [channelEffectsDialog, setChannelEffectsDialog] =
-    useState<ChannelNote | null>(null); // null = closed, or a channel name
+    useState<ChannelNote | null>(null);
   const [globalReverbDialog, setGlobalReverbDialog] = useState(false);
-  const [globalReverbSettings, setGlobalReverbSettings] = useState({
-    decay: 2.1,
-    preDelay: 0.05,
-    wet: 1,
-  });
+
+  // Sequencer grid
   const { grid, gridRef, toggleCell, duplicatePattern } = useGrid(NUM_CHANNELS);
   const loopRef = useRef<Tone.Loop | null>(null);
   const stepCounterRef = useRef(0);
   const numVisibleSteps = STEPS_MAP[loopLength];
-  
+
+  // We store swing in a ref so the loop callback can see it
   const swingRef = useRef(swing);
   useEffect(() => {
     swingRef.current = swing;
@@ -139,10 +161,11 @@ function App() {
     }, GRID_RESOLUTION);
   };
 
-  // Whenever loopLength changes, recreate the loop
+  // Re-create the loop whenever loopLength changes
   useEffect(() => {
     audioEngine.setLoopLength(loopLength);
     stepCounterRef.current = 0;
+
     if (loopRef.current) {
       loopRef.current.dispose();
     }
@@ -151,7 +174,7 @@ function App() {
   }, [loopLength, numVisibleSteps]);
 
   // ──────────────────────────────────────────────────────────────
-  // Transport Controls
+  // Transport
   // ──────────────────────────────────────────────────────────────
   const handleBpmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newBpm = parseInt(e.target.value, 10);
@@ -176,14 +199,17 @@ function App() {
     if (Tone.getContext().state !== "running") {
       await Tone.getContext().resume();
     }
+
     if (!engineReady) {
       await audioEngine.init();
       setEngineReady(true);
     }
+
     if (!loopRef.current) {
       loopRef.current = createToneLoop();
       loopRef.current.start(0);
     }
+
     audioEngine.startTransport();
   };
 
@@ -196,6 +222,7 @@ function App() {
   // ──────────────────────────────────────────────────────────────
   useEffect(() => {
     const handleSpaceKey = (e: KeyboardEvent) => {
+      // Avoid toggling if user is typing in an input
       if (
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement
@@ -218,77 +245,108 @@ function App() {
   }, []);
 
   // ──────────────────────────────────────────────────────────────
-  // Sync channel volumes & panning
+  // One-time parameter sync after audio engine is ready
   // ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    const anySolo = Object.values(channelControls).some((ctrl) => ctrl.solo);
-    Object.keys(channelControls).forEach((note) => {
-      const { mute, solo, volume, pan } = channelControls[note];
+    if (engineReady) {
+      applyAllChannelControls(channelControls);
+      applyAllChannelEffects(channelEffects);
+      applyGlobalReverbSettings(globalReverbSettings);
+    }
+    // We do NOT put channelControls/effects in the dep array
+    // because we don't want to re-run for every update.
+  }, [engineReady]);
+
+  // ──────────────────────────────────────────────────────────────
+  // Channel Controls\
+  // ──────────────────────────────────────────────────────────────
+  function applyAllChannelControls(controls: Record<string, ChannelControlsType>) {
+    if (!engineReady) return;
+    const anySolo = Object.values(controls).some((ctrl) => ctrl.solo);
+
+    Object.entries(controls).forEach(([note, { mute, solo, volume, pan }]) => {
       const effectiveMute = mute || (anySolo && !solo);
       const volumeDb = effectiveMute ? -Infinity : Tone.gainToDb(volume);
       audioEngine.setChannelVolume(note, volumeDb);
       audioEngine.setChannelPan(note, pan);
     });
-  }, [channelControls]);
+  }
 
-  // ──────────────────────────────────────────────────────────────
-  // Apply channel effects to the audio engine
-  // ──────────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!engineReady) return;
-    Object.entries(channelEffects).forEach(
-      ([channel, { time, wet, feedback, reverbSend }]) => {
-        audioEngine.setChannelDelayTime(channel, time);
-        audioEngine.setChannelDelayWet(channel, wet);
-        audioEngine.setChannelDelayFeedback(channel, feedback);
-        audioEngine.setChannelReverbSend(channel, reverbSend);
-      },
-    );
-  }, [channelEffects, engineReady]);
-
-  // ──────────────────────────────────────────────────────────────
-  // Apply global reverb settings to the audio engine
-  // ──────────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!engineReady) return;
-    audioEngine.setGlobalReverbDecay(globalReverbSettings.decay);
-    audioEngine.setGlobalReverbPreDelay(globalReverbSettings.preDelay);
-    audioEngine.setGlobalReverbWet(globalReverbSettings.wet);
-  }, [globalReverbSettings, engineReady]);
-
-  // Update a field in channelEffects for a given channel
-  const handleDelayChange = (
-    channel: string,
-    field: "time" | "wet" | "feedback" | "reverbSend",
-    value: string | number,
+  const onChangeChannel = (
+    note: string,
+    partial: Partial<ChannelControlsType>,
   ) => {
-    setChannelEffects((prev) => ({
-      ...prev,
-      [channel]: {
-        ...prev[channel],
-        [field]: value,
-      },
-    }));
+    setChannelControls((prev) => {
+      const next = { ...prev };
+      next[note] = { ...prev[note], ...partial };
+
+      applyAllChannelControls(next);
+
+      return next;
+    });
   };
 
-  // Current advanced settings (for whichever channel is open)
+  // ──────────────────────────────────────────────────────────────
+  // Channel Effects (Delay, Reverb Send)
+  // ──────────────────────────────────────────────────────────────
+  function applyAllChannelEffects(effects: Record<string, ChannelEffectsType>) {
+    if (!engineReady) return;
+    Object.entries(effects).forEach(([ch, fx]) => {
+      audioEngine.setChannelDelayTime(ch, fx.time);
+      audioEngine.setChannelDelayWet(ch, fx.wet);
+      audioEngine.setChannelDelayFeedback(ch, fx.feedback);
+      audioEngine.setChannelReverbSend(ch, fx.reverbSend);
+    });
+  }
+
+  const handleChannelEffectsChange = (
+    channel: string,
+    field: keyof ChannelEffectsType,
+    value: number | string,
+  ) => {
+    setChannelEffects((prev) => {
+      const updated = { ...prev };
+      updated[channel] = { ...updated[channel], [field]: value };
+
+      if (engineReady) {
+        audioEngine.setChannelDelayTime(channel, updated[channel].time);
+        audioEngine.setChannelDelayWet(channel, updated[channel].wet);
+        audioEngine.setChannelDelayFeedback(channel, updated[channel].feedback);
+        audioEngine.setChannelReverbSend(channel, updated[channel].reverbSend);
+      }
+      return updated;
+    });
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // Global Reverb
+  // ──────────────────────────────────────────────────────────────
+  const applyGlobalReverbSettings = (settings: GlobalReverbSettings) => {
+    if (!engineReady) return;
+    audioEngine.setGlobalReverbDecay(settings.decay);
+    audioEngine.setGlobalReverbPreDelay(settings.preDelay);
+    audioEngine.setGlobalReverbWet(settings.wet);
+  };
+
+  const handleGlobalReverbChange = (
+    field: keyof GlobalReverbSettings,
+    value: number,
+  ) => {
+    setGlobalReverbSettings((prev) => {
+      const next = { ...prev, [field]: value };
+      if (engineReady) {
+        audioEngine.setGlobalReverbDecay(next.decay);
+        audioEngine.setGlobalReverbPreDelay(next.preDelay);
+        audioEngine.setGlobalReverbWet(next.wet);
+      }
+      return next;
+    });
+  };
+
   const currentAdvancedSettings = channelEffectsDialog
     ? channelEffects[channelEffectsDialog]
     : null;
-
-  // Close the advanced modal
   const closeAdvancedModal = () => setChannelEffectsDialog(null);
-
-  // Handlers for global reverb sliders
-  const handleGlobalReverbChange = (
-    field: "decay" | "preDelay" | "wet",
-    value: number,
-  ) => {
-    setGlobalReverbSettings((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
 
   return (
     <div className="flex h-screen justify-center">
@@ -301,12 +359,12 @@ function App() {
             <Button onClick={handleStart}>Start</Button>
             <Button onClick={handleStop}>Stop</Button>
 
-            {/* NEW: Button to open global effects dialog */}
+            {/* Global Effects */}
             <Button onClick={() => setGlobalReverbDialog(true)}>
               Global Effects
             </Button>
 
-            {/* BPM control */}
+            {/* BPM */}
             <Label htmlFor="bpm">BPM:</Label>
             <Input
               id="bpm"
@@ -316,7 +374,7 @@ function App() {
               className="w-20"
             />
 
-            {/* Swing slider */}
+            {/* Swing */}
             <div className="flex items-center space-x-2">
               <span>Swing:</span>
               <input
@@ -339,9 +397,9 @@ function App() {
         <div className="flex">
           {/* Left: Channel Controls */}
           <ChannelControls
-            channelControls={channelControls}
-            setChannelControls={setChannelControls}
             channelNotes={CHANNEL_NOTES}
+            channelControls={channelControls}
+            onChangeChannel={onChangeChannel}
           />
 
           {/* Middle: Step Sequencer Grid */}
@@ -352,7 +410,7 @@ function App() {
             currentStep={currentStep}
           />
 
-          {/* Right: Delay slider & Reverb send slider side-by-side + Advanced button */}
+          {/* Right: Quick Delay/Reverb Send Sliders */}
           <div className="ml-4 flex h-10 flex-col space-y-4">
             {CHANNEL_NOTES.map((channel) => {
               const { wet, reverbSend } = channelEffects[channel];
@@ -366,7 +424,7 @@ function App() {
                     <Slider
                       value={[wet]}
                       onValueChange={([val]) =>
-                        handleDelayChange(channel, "wet", val)
+                        handleChannelEffectsChange(channel, "wet", val)
                       }
                       min={0}
                       max={1}
@@ -382,7 +440,11 @@ function App() {
                     <Slider
                       value={[reverbSend]}
                       onValueChange={([val]) =>
-                        handleDelayChange(channel, "reverbSend", val)
+                        handleChannelEffectsChange(
+                          channel,
+                          "reverbSend",
+                          val,
+                        )
                       }
                       min={0}
                       max={1}
@@ -390,7 +452,7 @@ function App() {
                     />
                   </div>
 
-                  {/* Advanced button (for delay time & feedback) */}
+                  {/* Button for advanced settings dialog */}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -410,8 +472,8 @@ function App() {
           <span>Loop Length:</span>
           <Select
             value={loopLength}
-            onValueChange={(value) =>
-              handleLoopLengthChange(value as LoopLength)
+            onValueChange={(val) =>
+              handleLoopLengthChange(val as LoopLength)
             }
           >
             <SelectTrigger className="w-[140px]">
@@ -429,7 +491,7 @@ function App() {
       </div>
 
       {/* ───────────────────────────────────────────────────── */}
-      {/* Advanced Effects Dialog (Per-Channel) */}
+      {/* Advanced Channel Effects Dialog*/}
       {/* ───────────────────────────────────────────────────── */}
       <Dialog
         open={!!channelEffectsDialog}
@@ -453,7 +515,11 @@ function App() {
                 <Select
                   value={currentAdvancedSettings.time.toString()}
                   onValueChange={(val) =>
-                    handleDelayChange(channelEffectsDialog!, "time", val)
+                    handleChannelEffectsChange(
+                      channelEffectsDialog!,
+                      "time",
+                      val,
+                    )
                   }
                 >
                   <SelectTrigger className="w-[160px]">
@@ -462,7 +528,7 @@ function App() {
                   <SelectContent>
                     <SelectItem value="4n">Quarter (4n)</SelectItem>
                     <SelectItem value="8n">Eighth (8n)</SelectItem>
-                    <SelectItem value="8n.">Dotted Eighth (8n.)</SelectItem>
+                    <SelectItem value="8n.">Dotted 8th (8n.)</SelectItem>
                     <SelectItem value="16n">Sixteenth (16n)</SelectItem>
                     <SelectItem value="0.25">0.25s</SelectItem>
                     <SelectItem value="0.5">0.5s</SelectItem>
@@ -470,7 +536,7 @@ function App() {
                 </Select>
               </div>
 
-              {/* Feedback only (no Reverb slider here) */}
+              {/* Feedback */}
               <div>
                 <Label className="mb-2 font-medium">
                   Feedback: {currentAdvancedSettings.feedback.toFixed(2)}
@@ -478,7 +544,11 @@ function App() {
                 <Slider
                   value={[currentAdvancedSettings.feedback]}
                   onValueChange={([val]) =>
-                    handleDelayChange(channelEffectsDialog!, "feedback", val)
+                    handleChannelEffectsChange(
+                      channelEffectsDialog!,
+                      "feedback",
+                      val,
+                    )
                   }
                   min={0}
                   max={1}
@@ -498,7 +568,7 @@ function App() {
       </Dialog>
 
       {/* ───────────────────────────────────────────────────── */}
-      {/* NEW: Global Effects Dialog (for Reverb) */}
+      {/* Global Effects Dialog */}
       {/* ───────────────────────────────────────────────────── */}
       <Dialog open={globalReverbDialog} onOpenChange={setGlobalReverbDialog}>
         <DialogContent onClick={(e) => e.stopPropagation()}>

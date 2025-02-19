@@ -11,15 +11,13 @@ export type ChannelControl = {
 
 type ChannelControlsProps = {
   channelControls: Record<string, ChannelControl>;
-  setChannelControls: React.Dispatch<
-    React.SetStateAction<Record<string, ChannelControl>>
-  >;
+  onChangeChannel: (note: string, partial: Partial<ChannelControl>) => void;
   channelNotes: ChannelNotes;
 };
 
 export function ChannelControls({
   channelControls,
-  setChannelControls,
+  onChangeChannel,
   channelNotes,
 }: ChannelControlsProps) {
   return (
@@ -32,37 +30,19 @@ export function ChannelControls({
               label={note}
               volume={volume}
               changeVolume={(newVolume) =>
-                setChannelControls((prev) => ({
-                  ...prev,
-                  [note]: {
-                    ...prev[note],
-                    volume: newVolume,
-                  },
-                }))
+                onChangeChannel(note, { volume: newVolume })
               }
               mute={mute}
               toggleMute={() =>
-                setChannelControls((prev) => ({
-                  ...prev,
-                  [note]: { ...prev[note], mute: !prev[note].mute },
-                }))
+                onChangeChannel(note, { mute: !mute })
               }
               solo={solo}
               toggleSolo={() =>
-                setChannelControls((prev) => ({
-                  ...prev,
-                  [note]: { ...prev[note], solo: !prev[note].solo },
-                }))
+                onChangeChannel(note, { solo: !solo })
               }
               pan={pan}
               changePan={(newPan) =>
-                setChannelControls((prev) => ({
-                  ...prev,
-                  [note]: {
-                    ...prev[note],
-                    pan: newPan,
-                  },
-                }))
+                onChangeChannel(note, { pan: newPan })
               }
             />
           </div>
