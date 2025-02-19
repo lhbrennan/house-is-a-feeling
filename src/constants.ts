@@ -10,4 +10,5 @@ export const CHANNEL_NOTES = [
   "Kick2",
   "Kick1",
 ] as const;
+export type ChannelNotes = typeof CHANNEL_NOTES;
 export type ChannelNote = (typeof CHANNEL_NOTES)[number];
