@@ -3,13 +3,6 @@ import type { LoopLength } from "./constants";
 
 let isInitialized = false;
 
-type Channel = {
-  player: Tone.Player;
-  volume: Tone.Volume;
-  panner: Tone.Panner;
-  delay: Tone.FeedbackDelay;
-};
-
 const samples = {
   Perc2: "/samples/perc_2.wav",
   Perc1: "/samples/perc_1.wav",
@@ -21,47 +14,59 @@ const samples = {
   Kick1: "/samples/kick.wav",
 };
 
+type Channel = {
+  player: Tone.Player;
+  volume: Tone.Volume;
+  panner: Tone.Panner;
+  delay: Tone.FeedbackDelay;
+  reverbSend: Tone.Gain;
+};
+
 const channels: Record<string, Channel> = {};
 
+let globalReverb: Tone.Reverb;
+
 const audioEngine = {
-  /**
-   * Initializes the audio engine:
-   *  - Starts the AudioContext (must be done on a user gesture)
-   *  - Creates a Tone.Players instance to load local samples.
-   *  - Sets up a per-channel chain (Player -> Volume -> Delay -> Panner -> Destination). // TODO: are you sure you want Panner after Delay? If yes, update UI to reflect this path
-   *  - Configures the global Transport.
-   */
+  // --------------------------------------------------------------------------
+  // Initialize the audio engine
+  // --------------------------------------------------------------------------
   async init() {
     if (isInitialized) return;
     await Tone.start();
 
-    const players = new Tone.Players(samples, () => {
-      console.log("All players loaded (local samples)!");
-    });
+    globalReverb = new Tone.Reverb().toDestination();
 
+    const players = new Tone.Players(samples);
+
+    // Create channel processing for each channel
     Object.keys(samples).forEach((note) => {
       const player = players.player(note);
       const volume = new Tone.Volume(0);
       const panner = new Tone.Panner(0);
 
-      // First argument: Delay time (e.g. "8n" = eighth note)
-      // Second argument: Feedback amount (0.5 = 50%)
-      const feedbackDelay = new Tone.FeedbackDelay("8n", 0.5);
+      const feedbackDelay = new Tone.FeedbackDelay();
+
+      const reverbSend = new Tone.Gain(0);
+
       player.chain(volume, feedbackDelay, panner, Tone.getDestination());
+      panner.connect(reverbSend);
+      reverbSend.connect(globalReverb);
 
       channels[note] = {
         player,
         volume,
         panner,
         delay: feedbackDelay,
+        reverbSend,
       };
     });
 
-    // Wait for all Tone buffers (players) to be loaded.
     await Tone.loaded();
-    console.log("All Tone buffers are loaded.");
+    console.log("All ToneJS buffers are loaded.");
 
-    // Configure the global transport.
+    // --------------------------------------------------------------------------
+    // Configure Global Transport
+    // --------------------------------------------------------------------------
     const transport = Tone.getTransport();
     transport.bpm.value = 120;
     transport.loop = true;
@@ -88,30 +93,23 @@ const audioEngine = {
     console.log(`Loop length set to ${loopLength}`);
   },
 
+  // --------------------------------------------------------------------------
+  // Trigger Note
+  // --------------------------------------------------------------------------
   playNote(note: string, time: number, gain: number) {
     const channel = channels[note];
-    if (!channel) return;
+    if (!channel || gain <= 0) return;
 
-    if (gain <= 0) return;
+    // create an ephemeral Gain node and Player to modulate the note's gain based on velocity value
+    const noteGain = new Tone.Gain(gain).connect(channel.volume);
 
-    // 1) create an ephemeral Gain node for this hit
-    const noteGain = new Tone.Gain(gain);
-    // connect ephemeral gain to the channel's Volume node
-    noteGain.connect(channel.volume);
-
-    // 2) create a new ephemeral Player using the same sample buffer
     const p = new Tone.Player({
-      url: channel.player.buffer, // reuse loaded buffer
-      onload: () => {}, // optional
-    });
+      url: channel.player.buffer,
+    }).connect(noteGain);
 
-    // connect the new Player into the ephemeral gain node
-    p.connect(noteGain);
-
-    // 3) schedule it to start
     p.start(time);
 
-    // 4) schedule disposal to free resources
+    // dispose after it finishes
     const sampleDuration = channel.player.buffer?.duration || 1;
     Tone.getTransport().scheduleOnce(() => {
       p.dispose();
@@ -119,6 +117,9 @@ const audioEngine = {
     }, time + sampleDuration);
   },
 
+  // --------------------------------------------------------------------------
+  // Channel-based paramter handlers
+  // --------------------------------------------------------------------------
   setChannelVolume(note: string, volumeDb: number) {
     if (channels[note]) {
       channels[note].volume.volume.value = volumeDb;
@@ -143,20 +144,56 @@ const audioEngine = {
     }
   },
 
-  setChannelDelayFeedback(note: string, feedbackValue: number) { // 0.2–0.6 is a good range. 0.0 = no repeats, 1.0 = infinite repeats
+  setChannelDelayFeedback(note: string, feedbackValue: number) {
     if (channels[note]) {
       channels[note].delay.feedback.value = feedbackValue;
     }
   },
 
+  setChannelReverbSend(note: string, sendAmount: number) {
+    if (channels[note]) {
+      channels[note].reverbSend.gain.value = sendAmount;
+    }
+  },
+
+  // --------------------------------------------------------------------------
+  // Global parameter handlers
+  // --------------------------------------------------------------------------
+  setGlobalReverbDecay(value: number) {
+    if (globalReverb) {
+      globalReverb.decay = value;
+    }
+  },
+
+  setGlobalReverbPreDelay(value: number) {
+    if (globalReverb) {
+      globalReverb.preDelay = value;
+    }
+  },
+
+  setGlobalReverbWet(value: number) {
+    if (globalReverb) {
+      globalReverb.wet.value = value;
+    }
+  },
+
+  // --------------------------------------------------------------------------
+  // Disposal
+  // --------------------------------------------------------------------------
   dispose() {
     this.stopTransport();
-    Object.values(channels).forEach(({ player, volume, panner, delay }) => {
-      player.dispose();
-      volume.dispose();
-      panner.dispose();
-      delay.dispose();
-    });
+    Object.values(channels).forEach(
+      ({ player, volume, panner, delay, reverbSend }) => {
+        player.dispose();
+        volume.dispose();
+        panner.dispose();
+        delay.dispose();
+        reverbSend.dispose();
+      },
+    );
+    if (globalReverb) {
+      globalReverb.dispose();
+    }
     isInitialized = false;
   },
 };
