@@ -1,9 +1,9 @@
 import { Pad, PAD_COLORS } from "./pad";
-import type { GridState, PadState } from "@/types";
+import type { GridState, PadVelocity } from "@/types";
 
 type GridProps = {
   grid: GridState;
-  toggleCell: (row: number, col: number, newState: PadState) => void;
+  toggleCell: (row: number, col: number, newState: PadVelocity) => void;
   numVisibleSteps?: number;
   currentStep: number | null;
 };

@@ -20,7 +20,7 @@ import { ChannelControls } from "@/components/channel-controls";
 import { ChannelFxDialog } from "@/components/channel-fx-dialog";
 import { GlobalFxDialog } from "@/components/global-fx-dialog";
 import { CHANNEL_NOTES, type ChannelNote } from "./constants";
-import type { PadState, ChannelFxType, GlobalReverbSettings } from "./types";
+import type { PadVelocity, ChannelFxType, GlobalReverbSettings } from "./types";
 import type { LoopLength } from "./constants";
 
 const NUM_CHANNELS = CHANNEL_NOTES.length;
@@ -61,8 +61,8 @@ const initialGlobalReverbSettings: GlobalReverbSettings = {
   wet: 1,
 };
 
-function getNormalizedVelocity(padState: PadState) {
-  switch (padState) {
+function getNormalizedVelocity(padVelocity: PadVelocity) {
+  switch (padVelocity) {
     case 3:
       return 1.0;
     case 2:
@@ -125,9 +125,9 @@ function App() {
       }
 
       gridRef.current.forEach((row, channelIndex) => {
-        const padState = row[step];
-        if (padState > 0) {
-          const gain = getNormalizedVelocity(padState);
+        const padVelocity = row[step];
+        if (padVelocity > 0) {
+          const gain = getNormalizedVelocity(padVelocity);
           audioEngine.playNote(
             CHANNEL_NOTES[channelIndex],
             scheduledTime,

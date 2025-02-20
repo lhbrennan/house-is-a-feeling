@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { createDefaultGrid } from "@/utils";
-import type { GridState, PadState } from "./types";
+import type { GridState, PadVelocity } from "./types";
 import type { LoopLength } from "./constants";
 
 const MAX_STEPS = 64;
@@ -15,7 +15,7 @@ export function useGrid(numChannels: number) {
     gridRef.current = grid;
   }, [grid]);
 
-  const toggleCell = (row: number, col: number, newValue: PadState) => {
+  const toggleCell = (row: number, col: number, newValue: PadVelocity) => {
     setGrid((prev) =>
       prev.map((r, rowIndex) =>
         rowIndex === row

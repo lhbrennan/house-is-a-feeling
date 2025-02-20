@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { cn } from "@/lib/utils";
-import type { PadState } from "@/types";
+import type { PadVelocity } from "@/types";
 import "@/index.css";
 
 const PAD_COLORS = [
@@ -14,7 +14,7 @@ const PAD_COLORS = [
   "red",
 ] as const;
 
-const PAD_STATES = ["off", "low", "medium", "high"] as const;
+const PAD_VELOCITIES = ["off", "low", "medium", "high"] as const;
 
 const colorRamps = {
   violet: {
@@ -44,9 +44,9 @@ const colorRamps = {
 } as const;
 
 type PadProps = {
-  state?: PadState;
+  state?: PadVelocity;
   color: (typeof PAD_COLORS)[number];
-  onClick: (newValue: PadState) => void;
+  onClick: (newValue: PadVelocity) => void;
   animate?: boolean;
 };
 
@@ -57,13 +57,13 @@ function Pad({
   animate = false,
   ...props
 }: PadProps) {
-  const state = PAD_STATES[numericState];
+  const state = PAD_VELOCITIES[numericState];
 
   // Timer ref for mobile long press detection.
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const longPressThreshold = 500; // ms
 
-  const cycleState = (current: PadState): PadState => {
+  const cycleState = (current: PadVelocity): PadVelocity => {
     switch (current) {
       case 0:
         return 3;
