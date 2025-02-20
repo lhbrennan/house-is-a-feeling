@@ -22,14 +22,14 @@ function ChannelFx({
   setActiveChannelFxDialog,
 }: Props) {
   return (
-    <div className="ml-4 flex h-10 flex-col space-y-4">
+    <div className="ml-4 flex h-[390px] flex-col items-center justify-between">
       {CHANNEL_NAMES.map((channel) => {
         const { wet, reverbSend } = channelFx[channel];
         return (
-          <div key={channel} className="flex items-center space-x-4">
+          <div key={channel} className="flex items-center space-x-4 justify-between">
             {/* Delay Wet */}
-            <div>
-              <Label className="mr-2">Delay {(wet * 100).toFixed(0)}%</Label>
+            <div className="flex grow">
+              <Label className="mr-2">D</Label>
               <Slider
                 value={[wet]}
                 onValueChange={([val]) =>
@@ -38,22 +38,7 @@ function ChannelFx({
                 min={0}
                 max={1}
                 step={0.01}
-              />
-            </div>
-
-            {/* Reverb Send */}
-            <div>
-              <Label className="mr-2">
-                Reverb {(reverbSend * 100).toFixed(0)}%
-              </Label>
-              <Slider
-                value={[reverbSend]}
-                onValueChange={([val]) =>
-                  handleChannelFxChange(channel, "reverbSend", val)
-                }
-                min={0}
-                max={1}
-                step={0.01}
+                className="w-16"
               />
             </div>
 
@@ -66,6 +51,21 @@ function ChannelFx({
               <Settings className="h-4 w-4" />
               <span className="sr-only">Advanced Settings</span>
             </Button>
+
+            {/* Reverb Send */}
+            <div className="flex">
+              <Label className="mr-2">R</Label>
+              <Slider
+                value={[reverbSend]}
+                onValueChange={([val]) =>
+                  handleChannelFxChange(channel, "reverbSend", val)
+                }
+                min={0}
+                max={1}
+                step={0.01}
+                className="w-16"
+              />
+            </div>
           </div>
         );
       })}

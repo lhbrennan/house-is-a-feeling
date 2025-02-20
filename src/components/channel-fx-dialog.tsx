@@ -46,7 +46,7 @@ function ChannelFxDialog({
     >
       <DialogContent onClick={(e) => e.stopPropagation()}>
         <DialogHeader>
-          <DialogTitle>{channel} Advanced Effects</DialogTitle>
+          <DialogTitle>{channel} delay settings</DialogTitle>
           <DialogDescription>
             Customize delay time & feedback settings
           </DialogDescription>

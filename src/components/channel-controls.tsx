@@ -23,7 +23,7 @@ export function ChannelControls({
   channelNames,
 }: ChannelControlsProps) {
   return (
-    <div className="flex flex-col gap-[10px]">
+    <div className="mr-4 flex flex-col gap-[10px]">
       {channelNames.map((channel) => {
         const { volume, mute, solo, pan } = channelControls[channel];
         return (
@@ -34,7 +34,7 @@ export function ChannelControls({
                 onChange={(newPan) => onChangeChannel(channel, { pan: newPan })}
               />
 
-              <div className="mr-4 capitalize">{channel}</div>
+              <div className="mr-4 w-20 text-center capitalize">{channel}</div>
 
               <Slider
                 className="max-w-[120px] min-w-[80px]"
@@ -49,14 +49,20 @@ export function ChannelControls({
 
               <Toggle
                 pressed={mute}
-                onPressedChange={() => onChangeChannel(channel, { mute: !mute })}
+                onPressedChange={() =>
+                  onChangeChannel(channel, { mute: !mute })
+                }
+                variant="outline"
               >
                 M
               </Toggle>
 
               <Toggle
                 pressed={solo}
-                onPressedChange={() => onChangeChannel(channel, { solo: !solo })}
+                onPressedChange={() =>
+                  onChangeChannel(channel, { solo: !solo })
+                }
+                variant="outline"
               >
                 S
               </Toggle>

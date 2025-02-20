@@ -10,6 +10,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 
 import audioEngine from "./audio-engine";
 import { Grid } from "@/components/grid";
@@ -242,7 +243,7 @@ function App() {
   }, [engineReady]);
 
   // ──────────────────────────────────────────────────────────────
-  // Channel Controls\
+  // Channel Controls
   // ──────────────────────────────────────────────────────────────
   function applyAllChannelControls(
     controls: Record<string, ChannelControlsType>,
@@ -357,14 +358,13 @@ function App() {
 
             {/* Swing */}
             <div className="flex items-center space-x-2">
-              <span>Swing:</span>
-              <input
-                type="range"
-                min="0"
-                max="0.5"
-                step="0.01"
-                value={swing}
-                onChange={(e) => setSwing(parseFloat(e.target.value))}
+              <Label htmlFor="swing">Swing:</Label>
+              <Slider
+                id="swing"
+                value={[swing]}
+                onValueChange={([val]) => setSwing(val)}
+                max={0.5}
+                step={0.01}
                 className="w-32"
               />
               <span>{Math.round(swing * 100)}%</span>
