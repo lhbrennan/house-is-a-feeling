@@ -6,3 +6,8 @@ export type ChannelFxType = {
   feedback: number; // TODO: rename this to delayFeedback
   reverbSend: number;
 };
+export type GlobalReverbSettings = {
+    decay: number;
+    preDelay: number;
+    wet: number;
+  };

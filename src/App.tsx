@@ -2,14 +2,6 @@ import React, { useRef, useState, useEffect } from "react";
 import * as Tone from "tone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogFooter,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -26,8 +18,9 @@ import { Grid } from "@/components/grid";
 import { useGrid } from "./use-grid";
 import { ChannelControls } from "@/components/channel-controls";
 import { ChannelFxDialog } from "@/components/channel-fx-dialog";
+import { GlobalFxDialog } from "@/components/global-fx-dialog";
 import { CHANNEL_NOTES, type ChannelNote } from "./constants";
-import type { PadState, ChannelFxType } from "./types";
+import type { PadState, ChannelFxType, GlobalReverbSettings } from "./types";
 import type { LoopLength } from "./constants";
 
 const NUM_CHANNELS = CHANNEL_NOTES.length;
@@ -53,21 +46,14 @@ const initialChannelControls: Record<string, ChannelControlsType> =
     ]),
   );
 
+const initialChannelFx: Record<string, ChannelFxType> = Object.fromEntries(
+  CHANNEL_NOTES.map((note) => [
+    note,
+    { time: "8n", wet: 0.0, feedback: 0.25, reverbSend: 0 },
+  ]),
+);
 
 
-const initialChannelFx: Record<string, ChannelFxType> =
-  Object.fromEntries(
-    CHANNEL_NOTES.map((note) => [
-      note,
-      { time: "8n", wet: 0.0, feedback: 0.25, reverbSend: 0 },
-    ]),
-  );
-
-type GlobalReverbSettings = {
-  decay: number;
-  preDelay: number;
-  wet: number;
-};
 
 const initialGlobalReverbSettings: GlobalReverbSettings = {
   decay: 2.1,
@@ -109,7 +95,8 @@ function App() {
   // Dialog states
   const [activeChannelFxDialog, setActiveChannelFxDialog] =
     useState<ChannelNote | null>(null);
-  const [globalReverbDialog, setGlobalReverbDialog] = useState(false);
+  const [isGlobalReverbDialogOpen, setIsGlobalReverbDialogOpen] =
+    useState(false);
 
   // Sequencer grid
   const { grid, gridRef, toggleCell, duplicatePattern } = useGrid(NUM_CHANNELS);
@@ -353,7 +340,7 @@ function App() {
             <Button onClick={handleStop}>Stop</Button>
 
             {/* Global Effects */}
-            <Button onClick={() => setGlobalReverbDialog(true)}>
+            <Button onClick={() => setIsGlobalReverbDialogOpen(true)}>
               Global Effects
             </Button>
 
@@ -490,66 +477,12 @@ function App() {
       {/* ───────────────────────────────────────────────────── */}
       {/* Global Effects Dialog */}
       {/* ───────────────────────────────────────────────────── */}
-      <Dialog open={globalReverbDialog} onOpenChange={setGlobalReverbDialog}>
-        <DialogContent onClick={(e) => e.stopPropagation()}>
-          <DialogHeader>
-            <DialogTitle>Global Effects</DialogTitle>
-            <DialogDescription>Adjust global reverb settings</DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            {/* Reverb Decay */}
-            <div>
-              <Label className="mb-2 font-medium">
-                Decay: {globalReverbSettings.decay.toFixed(2)}s
-              </Label>
-              <Slider
-                value={[globalReverbSettings.decay]}
-                onValueChange={([val]) =>
-                  handleGlobalReverbChange("decay", val)
-                }
-                min={0.1}
-                max={10}
-                step={0.1}
-              />
-            </div>
-
-            {/* Reverb PreDelay */}
-            <div>
-              <Label className="mb-2 font-medium">
-                PreDelay: {globalReverbSettings.preDelay.toFixed(2)}s
-              </Label>
-              <Slider
-                value={[globalReverbSettings.preDelay]}
-                onValueChange={([val]) =>
-                  handleGlobalReverbChange("preDelay", val)
-                }
-                min={0}
-                max={1}
-                step={0.01}
-              />
-            </div>
-
-            {/* Reverb Wet */}
-            <div>
-              <Label className="mb-2 font-medium">
-                Wet: {Math.round(globalReverbSettings.wet * 100)}%
-              </Label>
-              <Slider
-                value={[globalReverbSettings.wet]}
-                onValueChange={([val]) => handleGlobalReverbChange("wet", val)}
-                min={0}
-                max={1}
-                step={0.01}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button onClick={() => setGlobalReverbDialog(false)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <GlobalFxDialog
+        isOpen={isGlobalReverbDialogOpen}
+        globalReverbSettings={globalReverbSettings}
+        handleGlobalReverbChange={handleGlobalReverbChange}
+        setOpen={setIsGlobalReverbDialogOpen}
+      />
     </div>
   );
 }
