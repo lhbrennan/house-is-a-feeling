@@ -17,11 +17,11 @@ import {
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 
-import type { ChannelNote } from "@/constants";
+import type { ChannelName } from "@/constants";
 import type { ChannelFxState } from "@/types";
 
 type Props = {
-  channel: ChannelNote | null;
+  channel: ChannelName | null;
   channelFx: ChannelFxState | null;
   handleChannelFxChange: (
     channel: string,

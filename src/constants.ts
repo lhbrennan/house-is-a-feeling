@@ -1,6 +1,6 @@
 export type LoopLength = "1m" | "2m" | "4m";
 
-export const CHANNEL_NOTES = [ // TODO: rename to CHANNEL_NAMES
+export const CHANNEL_NAMES = [ // TODO: rename to CHANNEL_NAMES
   "Perc2",
   "Perc1",
   "OpenHat",
@@ -10,5 +10,5 @@ export const CHANNEL_NOTES = [ // TODO: rename to CHANNEL_NAMES
   "Kick2",
   "Kick1",
 ] as const;
-export type ChannelNotes = typeof CHANNEL_NOTES;
-export type ChannelNote = (typeof CHANNEL_NOTES)[number];
+export type ChannelNames = typeof CHANNEL_NAMES;
+export type ChannelName = (typeof CHANNEL_NAMES)[number];

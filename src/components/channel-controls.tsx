@@ -1,6 +1,6 @@
 import React from "react";
 import { ChannelStrip } from "@/components/channel-strip";
-import type { ChannelNotes } from "@/constants";
+import type { ChannelNames } from "@/constants";
 
 export type ChannelControl = {
   mute: boolean;
@@ -12,7 +12,7 @@ export type ChannelControl = {
 type ChannelControlsProps = {
   channelControls: Record<string, ChannelControl>;
   onChangeChannel: (note: string, partial: Partial<ChannelControl>) => void;
-  channelNotes: ChannelNotes;
+  channelNotes: ChannelNames;
 };
 
 export function ChannelControls({

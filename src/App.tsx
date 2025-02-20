@@ -18,7 +18,7 @@ import { ChannelControls } from "@/components/channel-controls";
 import { ChannelFxDialog } from "@/components/channel-fx-dialog";
 import { ChannelFx } from "@/components/channel-fx";
 import { GlobalFxDialog } from "@/components/global-fx-dialog";
-import { CHANNEL_NOTES, type ChannelNote } from "./constants";
+import { CHANNEL_NAMES, type ChannelName } from "./constants";
 import type {
   PadVelocity,
   ChannelFxState,
@@ -26,7 +26,7 @@ import type {
 } from "./types";
 import type { LoopLength } from "./constants";
 
-const NUM_CHANNELS = CHANNEL_NOTES.length;
+const NUM_CHANNELS = CHANNEL_NAMES.length;
 const GRID_RESOLUTION = "16n";
 const STEPS_MAP: Record<string, number> = {
   "1m": 16,
@@ -43,14 +43,14 @@ export type ChannelControlsType = {
 
 const initialChannelControls: Record<string, ChannelControlsType> =
   Object.fromEntries(
-    CHANNEL_NOTES.map((note) => [
+    CHANNEL_NAMES.map((note) => [
       note,
       { mute: false, solo: false, volume: 1, pan: 0 },
     ]),
   );
 
 const initialChannelFx: Record<string, ChannelFxState> = Object.fromEntries(
-  CHANNEL_NOTES.map((note) => [
+  CHANNEL_NAMES.map((note) => [
     note,
     { time: "8n", wet: 0.0, feedback: 0.25, reverbSend: 0 },
   ]),
@@ -95,7 +95,7 @@ function App() {
 
   // Dialog states
   const [activeChannelFxDialog, setActiveChannelFxDialog] =
-    useState<ChannelNote | null>(null);
+    useState<ChannelName | null>(null);
   const [isGlobalReverbDialogOpen, setIsGlobalReverbDialogOpen] =
     useState(false);
 
@@ -130,7 +130,7 @@ function App() {
         if (padVelocity > 0) {
           const gain = getNormalizedVelocity(padVelocity);
           audioEngine.playNote(
-            CHANNEL_NOTES[channelIndex],
+            CHANNEL_NAMES[channelIndex],
             scheduledTime,
             gain,
           );
@@ -286,7 +286,7 @@ function App() {
   }
 
   const handleChannelFxChange = (
-    channel: ChannelNote,
+    channel: ChannelName,
     field: keyof ChannelFxState,
     value: number | string,
   ) => {
@@ -377,7 +377,7 @@ function App() {
         {/* ───────────────────────────────────────────────────── */}
         <div className="flex">
           <ChannelControls
-            channelNotes={CHANNEL_NOTES}
+            channelNotes={CHANNEL_NAMES}
             channelControls={channelControls}
             onChangeChannel={onChangeChannel}
           />

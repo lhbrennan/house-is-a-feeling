@@ -1,10 +1,10 @@
 import * as RadixSlider from "@radix-ui/react-slider";
 import { Toggle } from "@/components/ui/toggle";
 import { Slider } from "@/components/ui/slider";
-import type { ChannelNote } from "@/constants";
+import type { ChannelName } from "@/constants";
 
 type ChannelStripProps = {
-  label: ChannelNote;
+  label: ChannelName;
   volume: number;
   changeVolume: (volume: number) => void;
   mute: boolean;

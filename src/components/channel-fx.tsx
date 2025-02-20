@@ -3,17 +3,17 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Settings } from "lucide-react";
 
-import { CHANNEL_NOTES, ChannelNote } from "@/constants";
+import { CHANNEL_NAMES, ChannelName } from "@/constants";
 import { ChannelFxState } from "@/types";
 
 type Props = {
   channelFx: Record<string, ChannelFxState>;
   handleChannelFxChange: (
-    channel: ChannelNote,
+    channel: ChannelName,
     field: keyof ChannelFxState,
     value: number | string,
   ) => void;
-  setActiveChannelFxDialog: (channelName: ChannelNote) => void;
+  setActiveChannelFxDialog: (channelName: ChannelName) => void;
 };
 
 function ChannelFx({
@@ -23,7 +23,7 @@ function ChannelFx({
 }: Props) {
   return (
     <div className="ml-4 flex h-10 flex-col space-y-4">
-      {CHANNEL_NOTES.map((channel) => {
+      {CHANNEL_NAMES.map((channel) => {
         const { wet, reverbSend } = channelFx[channel];
         return (
           <div key={channel} className="flex items-center space-x-4">
