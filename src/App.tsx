@@ -25,8 +25,9 @@ import audioEngine from "./audio-engine";
 import { Grid } from "@/components/grid";
 import { useGrid } from "./use-grid";
 import { ChannelControls } from "@/components/channel-controls";
+import { ChannelFxDialog } from "@/components/channel-fx-dialog";
 import { CHANNEL_NOTES, type ChannelNote } from "./constants";
-import type { PadState } from "./types";
+import type { PadState, ChannelFxType } from "./types";
 import type { LoopLength } from "./constants";
 
 const NUM_CHANNELS = CHANNEL_NOTES.length;
@@ -41,7 +42,7 @@ export type ChannelControlsType = {
   mute: boolean;
   solo: boolean;
   volume: number; // normalized 0..1
-  pan: number;    // -1..1
+  pan: number; // -1..1
 };
 
 const initialChannelControls: Record<string, ChannelControlsType> =
@@ -52,14 +53,9 @@ const initialChannelControls: Record<string, ChannelControlsType> =
     ]),
   );
 
-type ChannelEffectsType = {
-  time: string; // TODO: rename this to delayTime // TODO: type this better
-  wet: number; // TODO: rename this to delayWet
-  feedback: number; // TODO: rename this to delayFeedback
-  reverbSend: number;
-};
 
-const initialChannelEffects: Record<string, ChannelEffectsType> =
+
+const initialChannelFx: Record<string, ChannelFxType> =
   Object.fromEntries(
     CHANNEL_NOTES.map((note) => [
       note,
@@ -105,13 +101,13 @@ function App() {
   const [channelControls, setChannelControls] = useState(
     initialChannelControls,
   );
-  const [channelEffects, setChannelEffects] = useState(initialChannelEffects);
+  const [channelFx, setChannelFx] = useState(initialChannelFx);
   const [globalReverbSettings, setGlobalReverbSettings] = useState(
     initialGlobalReverbSettings,
   );
 
   // Dialog states
-  const [channelEffectsDialog, setChannelEffectsDialog] =
+  const [activeChannelFxDialog, setActiveChannelFxDialog] =
     useState<ChannelNote | null>(null);
   const [globalReverbDialog, setGlobalReverbDialog] = useState(false);
 
@@ -250,7 +246,7 @@ function App() {
   useEffect(() => {
     if (engineReady) {
       applyAllChannelControls(channelControls);
-      applyAllChannelEffects(channelEffects);
+      applyAllChannelFx(channelFx);
       applyGlobalReverbSettings(globalReverbSettings);
     }
     // We do NOT put channelControls/effects in the dep array
@@ -260,7 +256,9 @@ function App() {
   // ──────────────────────────────────────────────────────────────
   // Channel Controls\
   // ──────────────────────────────────────────────────────────────
-  function applyAllChannelControls(controls: Record<string, ChannelControlsType>) {
+  function applyAllChannelControls(
+    controls: Record<string, ChannelControlsType>,
+  ) {
     if (!engineReady) return;
     const anySolo = Object.values(controls).some((ctrl) => ctrl.solo);
 
@@ -289,7 +287,7 @@ function App() {
   // ──────────────────────────────────────────────────────────────
   // Channel Effects (Delay, Reverb Send)
   // ──────────────────────────────────────────────────────────────
-  function applyAllChannelEffects(effects: Record<string, ChannelEffectsType>) {
+  function applyAllChannelFx(effects: Record<string, ChannelFxType>) {
     if (!engineReady) return;
     Object.entries(effects).forEach(([ch, fx]) => {
       audioEngine.setChannelDelayTime(ch, fx.time);
@@ -299,12 +297,12 @@ function App() {
     });
   }
 
-  const handleChannelEffectsChange = (
+  const handleChannelFxChange = (
     channel: string,
-    field: keyof ChannelEffectsType,
+    field: keyof ChannelFxType,
     value: number | string,
   ) => {
-    setChannelEffects((prev) => {
+    setChannelFx((prev) => {
       const updated = { ...prev };
       updated[channel] = { ...updated[channel], [field]: value };
 
@@ -342,11 +340,6 @@ function App() {
       return next;
     });
   };
-
-  const currentAdvancedSettings = channelEffectsDialog
-    ? channelEffects[channelEffectsDialog]
-    : null;
-  const closeAdvancedModal = () => setChannelEffectsDialog(null);
 
   return (
     <div className="flex h-screen justify-center">
@@ -413,7 +406,7 @@ function App() {
           {/* Right: Quick Delay/Reverb Send Sliders */}
           <div className="ml-4 flex h-10 flex-col space-y-4">
             {CHANNEL_NOTES.map((channel) => {
-              const { wet, reverbSend } = channelEffects[channel];
+              const { wet, reverbSend } = channelFx[channel];
               return (
                 <div key={channel} className="flex items-center space-x-4">
                   {/* Delay Wet */}
@@ -424,7 +417,7 @@ function App() {
                     <Slider
                       value={[wet]}
                       onValueChange={([val]) =>
-                        handleChannelEffectsChange(channel, "wet", val)
+                        handleChannelFxChange(channel, "wet", val)
                       }
                       min={0}
                       max={1}
@@ -440,11 +433,7 @@ function App() {
                     <Slider
                       value={[reverbSend]}
                       onValueChange={([val]) =>
-                        handleChannelEffectsChange(
-                          channel,
-                          "reverbSend",
-                          val,
-                        )
+                        handleChannelFxChange(channel, "reverbSend", val)
                       }
                       min={0}
                       max={1}
@@ -456,7 +445,7 @@ function App() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => setChannelEffectsDialog(channel)}
+                    onClick={() => setActiveChannelFxDialog(channel)}
                   >
                     <Settings className="h-4 w-4" />
                     <span className="sr-only">Advanced Settings</span>
@@ -472,9 +461,7 @@ function App() {
           <span>Loop Length:</span>
           <Select
             value={loopLength}
-            onValueChange={(val) =>
-              handleLoopLengthChange(val as LoopLength)
-            }
+            onValueChange={(val) => handleLoopLengthChange(val as LoopLength)}
           >
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Select" />
@@ -493,79 +480,12 @@ function App() {
       {/* ───────────────────────────────────────────────────── */}
       {/* Advanced Channel Effects Dialog*/}
       {/* ───────────────────────────────────────────────────── */}
-      <Dialog
-        open={!!channelEffectsDialog}
-        onOpenChange={(open) => {
-          if (!open) closeAdvancedModal();
-        }}
-      >
-        <DialogContent onClick={(e) => e.stopPropagation()}>
-          <DialogHeader>
-            <DialogTitle>{channelEffectsDialog} Advanced Effects</DialogTitle>
-            <DialogDescription>
-              Customize delay time & feedback settings
-            </DialogDescription>
-          </DialogHeader>
-
-          {currentAdvancedSettings && (
-            <div className="space-y-4">
-              {/* Delay Time */}
-              <div>
-                <Label className="mr-2 font-medium">Delay Time:</Label>
-                <Select
-                  value={currentAdvancedSettings.time.toString()}
-                  onValueChange={(val) =>
-                    handleChannelEffectsChange(
-                      channelEffectsDialog!,
-                      "time",
-                      val,
-                    )
-                  }
-                >
-                  <SelectTrigger className="w-[160px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="4n">Quarter (4n)</SelectItem>
-                    <SelectItem value="8n">Eighth (8n)</SelectItem>
-                    <SelectItem value="8n.">Dotted 8th (8n.)</SelectItem>
-                    <SelectItem value="16n">Sixteenth (16n)</SelectItem>
-                    <SelectItem value="0.25">0.25s</SelectItem>
-                    <SelectItem value="0.5">0.5s</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Feedback */}
-              <div>
-                <Label className="mb-2 font-medium">
-                  Feedback: {currentAdvancedSettings.feedback.toFixed(2)}
-                </Label>
-                <Slider
-                  value={[currentAdvancedSettings.feedback]}
-                  onValueChange={([val]) =>
-                    handleChannelEffectsChange(
-                      channelEffectsDialog!,
-                      "feedback",
-                      val,
-                    )
-                  }
-                  min={0}
-                  max={1}
-                  step={0.01}
-                />
-                <p className="text-muted-foreground mt-1 text-sm">
-                  Lower = fewer repeats; higher = longer echo tail.
-                </p>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button onClick={closeAdvancedModal}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ChannelFxDialog
+        channel={activeChannelFxDialog}
+        channelFx={activeChannelFxDialog && channelFx[activeChannelFxDialog]}
+        handleChannelFxChange={handleChannelFxChange}
+        onClose={() => setActiveChannelFxDialog(null)}
+      />
 
       {/* ───────────────────────────────────────────────────── */}
       {/* Global Effects Dialog */}
