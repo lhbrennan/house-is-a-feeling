@@ -1,6 +1,6 @@
 export type LoopLength = "1m" | "2m" | "4m";
 
-export const CHANNEL_NOTES = [
+export const CHANNEL_NOTES = [ // TODO: rename to CHANNEL_NAMES
   "Perc2",
   "Perc1",
   "OpenHat",

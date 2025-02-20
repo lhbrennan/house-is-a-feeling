@@ -10,17 +10,20 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
-import { Settings } from "lucide-react";
 
 import audioEngine from "./audio-engine";
 import { Grid } from "@/components/grid";
 import { useGrid } from "./use-grid";
 import { ChannelControls } from "@/components/channel-controls";
 import { ChannelFxDialog } from "@/components/channel-fx-dialog";
+import { ChannelFx } from "@/components/channel-fx";
 import { GlobalFxDialog } from "@/components/global-fx-dialog";
 import { CHANNEL_NOTES, type ChannelNote } from "./constants";
-import type { PadVelocity, ChannelFxType, GlobalReverbSettings } from "./types";
+import type {
+  PadVelocity,
+  ChannelFxState,
+  GlobalReverbSettings,
+} from "./types";
 import type { LoopLength } from "./constants";
 
 const NUM_CHANNELS = CHANNEL_NOTES.length;
@@ -46,14 +49,12 @@ const initialChannelControls: Record<string, ChannelControlsType> =
     ]),
   );
 
-const initialChannelFx: Record<string, ChannelFxType> = Object.fromEntries(
+const initialChannelFx: Record<string, ChannelFxState> = Object.fromEntries(
   CHANNEL_NOTES.map((note) => [
     note,
     { time: "8n", wet: 0.0, feedback: 0.25, reverbSend: 0 },
   ]),
 );
-
-
 
 const initialGlobalReverbSettings: GlobalReverbSettings = {
   decay: 2.1,
@@ -274,7 +275,7 @@ function App() {
   // ──────────────────────────────────────────────────────────────
   // Channel Effects (Delay, Reverb Send)
   // ──────────────────────────────────────────────────────────────
-  function applyAllChannelFx(effects: Record<string, ChannelFxType>) {
+  function applyAllChannelFx(effects: Record<string, ChannelFxState>) {
     if (!engineReady) return;
     Object.entries(effects).forEach(([ch, fx]) => {
       audioEngine.setChannelDelayTime(ch, fx.time);
@@ -285,8 +286,8 @@ function App() {
   }
 
   const handleChannelFxChange = (
-    channel: string,
-    field: keyof ChannelFxType,
+    channel: ChannelNote,
+    field: keyof ChannelFxState,
     value: number | string,
   ) => {
     setChannelFx((prev) => {
@@ -372,17 +373,15 @@ function App() {
         </div>
 
         {/* ───────────────────────────────────────────────────── */}
-        {/* Main Section: ChannelControls, Grid, & Effects */}
+        {/* Main Section: ChannelControls, Grid, & ChannelFx */}
         {/* ───────────────────────────────────────────────────── */}
         <div className="flex">
-          {/* Left: Channel Controls */}
           <ChannelControls
             channelNotes={CHANNEL_NOTES}
             channelControls={channelControls}
             onChangeChannel={onChangeChannel}
           />
 
-          {/* Middle: Step Sequencer Grid */}
           <Grid
             grid={grid}
             toggleCell={toggleCell}
@@ -390,57 +389,11 @@ function App() {
             currentStep={currentStep}
           />
 
-          {/* Right: Quick Delay/Reverb Send Sliders */}
-          <div className="ml-4 flex h-10 flex-col space-y-4">
-            {CHANNEL_NOTES.map((channel) => {
-              const { wet, reverbSend } = channelFx[channel];
-              return (
-                <div key={channel} className="flex items-center space-x-4">
-                  {/* Delay Wet */}
-                  <div>
-                    <Label className="mr-2">
-                      Delay {(wet * 100).toFixed(0)}%
-                    </Label>
-                    <Slider
-                      value={[wet]}
-                      onValueChange={([val]) =>
-                        handleChannelFxChange(channel, "wet", val)
-                      }
-                      min={0}
-                      max={1}
-                      step={0.01}
-                    />
-                  </div>
-
-                  {/* Reverb Send */}
-                  <div>
-                    <Label className="mr-2">
-                      Reverb {(reverbSend * 100).toFixed(0)}%
-                    </Label>
-                    <Slider
-                      value={[reverbSend]}
-                      onValueChange={([val]) =>
-                        handleChannelFxChange(channel, "reverbSend", val)
-                      }
-                      min={0}
-                      max={1}
-                      step={0.01}
-                    />
-                  </div>
-
-                  {/* Button for advanced settings dialog */}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setActiveChannelFxDialog(channel)}
-                  >
-                    <Settings className="h-4 w-4" />
-                    <span className="sr-only">Advanced Settings</span>
-                  </Button>
-                </div>
-              );
-            })}
-          </div>
+          <ChannelFx
+            channelFx={channelFx}
+            handleChannelFxChange={handleChannelFxChange}
+            setActiveChannelFxDialog={setActiveChannelFxDialog}
+          />
         </div>
 
         {/* Bottom: Loop length + Duplicate Pattern */}
@@ -464,9 +417,6 @@ function App() {
         </div>
       </div>
 
-      {/* ───────────────────────────────────────────────────── */}
-      {/* Advanced Channel Effects Dialog*/}
-      {/* ───────────────────────────────────────────────────── */}
       <ChannelFxDialog
         channel={activeChannelFxDialog}
         channelFx={activeChannelFxDialog && channelFx[activeChannelFxDialog]}
@@ -474,9 +424,6 @@ function App() {
         onClose={() => setActiveChannelFxDialog(null)}
       />
 
-      {/* ───────────────────────────────────────────────────── */}
-      {/* Global Effects Dialog */}
-      {/* ───────────────────────────────────────────────────── */}
       <GlobalFxDialog
         isOpen={isGlobalReverbDialogOpen}
         globalReverbSettings={globalReverbSettings}

@@ -18,14 +18,14 @@ import {
 import { Slider } from "@/components/ui/slider";
 
 import type { ChannelNote } from "@/constants";
-import type { ChannelFxType } from "@/types";
+import type { ChannelFxState } from "@/types";
 
 type Props = {
   channel: ChannelNote | null;
-  channelFx: ChannelFxType | null;
+  channelFx: ChannelFxState | null;
   handleChannelFxChange: (
     channel: string,
-    field: keyof ChannelFxType,
+    field: keyof ChannelFxState,
     value: number | string,
   ) => void;
   onClose: () => void;
