@@ -24,7 +24,7 @@ type Props = {
   channel: ChannelName | null;
   channelFx: ChannelFxState | null;
   handleChannelFxChange: (
-    channel: string,
+    channel: ChannelName,
     field: keyof ChannelFxState,
     value: number | string,
   ) => void;

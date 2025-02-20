@@ -377,7 +377,7 @@ function App() {
         {/* ───────────────────────────────────────────────────── */}
         <div className="flex">
           <ChannelControls
-            channelNotes={CHANNEL_NAMES}
+            channelNames={CHANNEL_NAMES}
             channelControls={channelControls}
             onChangeChannel={onChangeChannel}
           />
