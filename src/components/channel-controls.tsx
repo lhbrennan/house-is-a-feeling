@@ -2,6 +2,8 @@ import * as RadixSlider from "@radix-ui/react-slider";
 import { Toggle } from "@/components/ui/toggle";
 import { Slider } from "@/components/ui/slider";
 
+import { CycleSelect } from "./cycle-select";
+
 import type { ChannelNames } from "@/constants";
 
 export type ChannelControl = {
@@ -36,6 +38,15 @@ export function ChannelControls({
 
               <div className="mr-4 w-20 text-center capitalize">{channel}</div>
 
+              <CycleSelect
+                options={["kick 1", "kick 2", "kick 3"]}
+                onChange={() => {}}
+                selectedValue={"kick 1"}
+                onDotClick={() => {
+                  console.log("Dot clicked");
+                }}
+                className="mr-4"
+              />
               <Slider
                 className="max-w-[120px] min-w-[80px]"
                 value={[volume]}
