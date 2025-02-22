@@ -1,4 +1,6 @@
 import * as RadixSlider from "@radix-ui/react-slider";
+
+import { cn } from "@/lib/utils";
 import { Toggle } from "@/components/ui/toggle";
 import { Slider } from "@/components/ui/slider";
 
@@ -35,11 +37,15 @@ export function ChannelControls({
       {channelNames.map((channel, idx) => {
         const { volume, mute, solo, pan } = channelControls[channel];
         return (
-          <div key={channel} className="flex items-center space-x-4">
+          <div
+            key={channel}
+            className="flex items-center space-x-4 rounded pt-0 pr-2 pb-0 pl-2"
+          >
             <div className="flex h-10 min-w-md items-center justify-between">
               <PanSlider
                 value={pan}
                 onChange={(newPan) => onChangeChannel(channel, { pan: newPan })}
+                className="mr-4"
               />
 
               <div className="mr-4 w-20 text-center capitalize">{channel}</div>
@@ -95,9 +101,11 @@ export function ChannelControls({
 function PanSlider({
   value,
   onChange,
+  className,
 }: {
   value: number;
   onChange: (value: number) => void;
+  className?: string;
 }) {
   // Map value from [-1, 1] to a percentage (0% to 100%).
   const thumbPercent = ((value + 1) / 2) * 100;
@@ -118,7 +126,7 @@ function PanSlider({
   }
 
   return (
-    <div className="relative w-32 py-4">
+    <div className={cn("relative w-32 py-4", className)}>
       <RadixSlider.Root
         className="relative flex w-full items-center"
         value={[value]}
