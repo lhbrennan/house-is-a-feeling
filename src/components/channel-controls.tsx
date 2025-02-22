@@ -19,6 +19,7 @@ type ChannelControlsProps = {
   channelNames: ChannelNames;
   selectedSampleIndexes: Record<ChannelName, number>;
   onChangeChannelSample: (channel: ChannelName, sampleIdx: number) => void;
+  playNoteImmediately: (channel: ChannelName) => void;
 };
 
 export function ChannelControls({
@@ -27,6 +28,7 @@ export function ChannelControls({
   channelNames,
   selectedSampleIndexes,
   onChangeChannelSample,
+  playNoteImmediately,
 }: ChannelControlsProps) {
   return (
     <div className="mr-4 flex flex-col gap-[10px]">
@@ -47,7 +49,7 @@ export function ChannelControls({
                 onChange={(newIdx) => onChangeChannelSample(channel, newIdx)}
                 selectedSampleIdx={selectedSampleIndexes[channel]}
                 onDotClick={() => {
-                  console.log("Dot clicked");
+                  playNoteImmediately(channel);
                 }}
                 className="mr-4"
                 color={CYCLE_SELECT_COLORS[idx]}

@@ -258,21 +258,21 @@ function App() {
     if (!engineReady) return;
     const anySolo = Object.values(controls).some((ctrl) => ctrl.solo);
 
-    Object.entries(controls).forEach(([note, { mute, solo, volume, pan }]) => {
-      const effectiveMute = mute || (anySolo && !solo);
-      const volumeDb = effectiveMute ? -Infinity : Tone.gainToDb(volume);
-      audioEngine.setChannelVolume(note, volumeDb);
-      audioEngine.setChannelPan(note, pan);
-    });
+    Object.entries(controls).forEach(([channel, { mute, solo, volume, pan }]) => {
+          const effectiveMute = mute || (anySolo && !solo);
+          const volumeDb = effectiveMute ? -Infinity : Tone.gainToDb(volume);
+          audioEngine.setChannelVolume(channel as ChannelName, volumeDb);
+          audioEngine.setChannelPan(channel as ChannelName, pan);
+        });
   }
 
   const onChangeChannel = (
-    note: string,
+    channel: string,
     partial: Partial<ChannelControlsType>,
   ) => {
     setChannelControls((prev) => {
       const next = { ...prev };
-      next[note] = { ...prev[note], ...partial };
+      next[channel] = { ...prev[channel], ...partial };
 
       applyAllChannelControls(next);
 
@@ -294,11 +294,11 @@ function App() {
   // ──────────────────────────────────────────────────────────────
   function applyAllChannelFx(effects: Record<string, ChannelFxState>) {
     if (!engineReady) return;
-    Object.entries(effects).forEach(([ch, fx]) => {
-      audioEngine.setChannelDelayTime(ch, fx.time);
-      audioEngine.setChannelDelayWet(ch, fx.wet);
-      audioEngine.setChannelDelayFeedback(ch, fx.feedback);
-      audioEngine.setChannelReverbSend(ch, fx.reverbSend);
+    Object.entries(effects).forEach(([channel, fx]) => {
+      audioEngine.setChannelDelayTime(channel, fx.time);
+      audioEngine.setChannelDelayWet(channel, fx.wet);
+      audioEngine.setChannelDelayFeedback(channel, fx.feedback);
+      audioEngine.setChannelReverbSend(channel, fx.reverbSend);
     });
   }
 
@@ -398,6 +398,7 @@ function App() {
             onChangeChannel={onChangeChannel}
             selectedSampleIndexes={selectedSampleIndexes}
             onChangeChannelSample={handleChannelSampleChange}
+            playNoteImmediately={(channel: ChannelName) => audioEngine.playNote(channel, Tone.now(), 1)}
           />
 
           <Grid

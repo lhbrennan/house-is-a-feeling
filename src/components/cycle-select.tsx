@@ -38,7 +38,7 @@ export function CycleSelect({
   options,
   selectedSampleIdx,
   onChange,
-  color = "#3498db",
+  color = 'black',
   dotSize = 16,
   onDotClick,
   className,
