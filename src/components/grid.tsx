@@ -15,7 +15,7 @@ export function Grid({
   currentStep,
 }: GridProps) {
   return (
-    <div className="h-[390px] flex flex-col justify-between">
+    <div className="flex h-[390px] flex-col justify-between">
       {grid.map((row, rowIndex) => {
         const visibleSteps = row.slice(0, numVisibleSteps);
         const beats = [];

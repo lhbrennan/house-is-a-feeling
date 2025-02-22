@@ -63,7 +63,10 @@ export function useGrid(numChannels: number) {
         if (direction === "left") {
           shiftedVisible = [...visible.slice(1), visible[0]];
         } else {
-          shiftedVisible = [visible[visible.length - 1], ...visible.slice(0, visible.length - 1)];
+          shiftedVisible = [
+            visible[visible.length - 1],
+            ...visible.slice(0, visible.length - 1),
+          ];
         }
         return shiftedVisible.concat(hidden);
       }),

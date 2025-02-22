@@ -12,7 +12,9 @@ export const CycleSelect: Story = () => {
       options={options}
       onChange={setSelected}
       selectedValue={selected}
-      onDotClick={() => {console.log("Dot clicked")}}
+      onDotClick={() => {
+        console.log("Dot clicked");
+      }}
     />
   );
 };

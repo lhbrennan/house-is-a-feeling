@@ -7,7 +7,7 @@ export type ChannelFxState = {
   reverbSend: number;
 };
 export type GlobalReverbSettings = {
-    decay: number;
-    preDelay: number;
-    wet: number;
-  };
+  decay: number;
+  preDelay: number;
+  wet: number;
+};

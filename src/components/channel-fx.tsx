@@ -26,7 +26,10 @@ function ChannelFx({
       {CHANNEL_NAMES.map((channel) => {
         const { wet, reverbSend } = channelFx[channel];
         return (
-          <div key={channel} className="flex items-center space-x-4 justify-between">
+          <div
+            key={channel}
+            className="flex items-center justify-between space-x-4"
+          >
             {/* Delay Wet */}
             <div className="flex grow">
               <Label className="mr-2">D</Label>
