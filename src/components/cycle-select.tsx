@@ -7,7 +7,22 @@ import {
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover";
-import { ChevronLeftIcon, ChevronRightIcon, ArrowLeftIcon } from "@radix-ui/react-icons";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ArrowLeftIcon,
+} from "@radix-ui/react-icons";
+
+export const CYCLE_SELECT_COLORS = [
+  "oklch(0.541 0.281 293.009)",
+  "oklch(0.541 0.281 293.009)",
+  "oklch(0.715 0.143 215.221)",
+  "oklch(0.715 0.143 215.221)",
+  "oklch(0.681 0.162 75.834)",
+  "oklch(0.681 0.162 75.834)",
+  "oklch(0.577 0.245 27.325)",
+  "oklch(0.577 0.245 27.325)",
+];
 
 type CycleSelectProps = {
   options: string[];
@@ -124,8 +139,8 @@ export function CycleSelect({
                     setIsPopoverOpen(false);
                   }}
                   className={cn(
-                    "cursor-pointer p-2 hover:bg-gray-200 flex items-center justify-between",
-                    selectedValue === sample && "bg-gray-200 font-semibold"
+                    "flex cursor-pointer items-center justify-between p-2 hover:bg-gray-200",
+                    selectedValue === sample && "bg-gray-200 font-semibold",
                   )}
                 >
                   <span>{sample}</span>

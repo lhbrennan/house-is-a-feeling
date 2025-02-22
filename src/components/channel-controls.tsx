@@ -2,7 +2,7 @@ import * as RadixSlider from "@radix-ui/react-slider";
 import { Toggle } from "@/components/ui/toggle";
 import { Slider } from "@/components/ui/slider";
 
-import { CycleSelect } from "./cycle-select";
+import { CycleSelect, CYCLE_SELECT_COLORS } from "./cycle-select";
 
 import { SAMPLES, type ChannelNames, type ChannelName } from "@/constants";
 
@@ -30,7 +30,7 @@ export function ChannelControls({
 }: ChannelControlsProps) {
   return (
     <div className="mr-4 flex flex-col gap-[10px]">
-      {channelNames.map((channel) => {
+      {channelNames.map((channel, idx) => {
         const { volume, mute, solo, pan } = channelControls[channel];
         return (
           <div key={channel} className="flex items-center space-x-4">
@@ -50,6 +50,7 @@ export function ChannelControls({
                   console.log("Dot clicked");
                 }}
                 className="mr-4"
+                color={CYCLE_SELECT_COLORS[idx]}
               />
               <Slider
                 className="mr-4 max-w-[120px] min-w-[80px]"
