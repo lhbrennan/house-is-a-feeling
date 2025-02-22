@@ -119,42 +119,45 @@ const audioEngine = {
   // --------------------------------------------------------------------------
   setChannelVolume(channelName: ChannelName, volumeDb: number) {
     if (channels[channelName]) {
-      channels[channelName].volume.volume.value = volumeDb;
+      channels[channelName]!.volume.volume.value = volumeDb;
     }
   },
 
   setChannelPan(channelName: ChannelName, panValue: number) {
     if (channels[channelName]) {
-      channels[channelName].panner.pan.value = panValue;
+      channels[channelName]!.panner.pan.value = panValue;
     }
   },
 
   setChannelDelayTime(channelName: ChannelName, delayTime: string | number) {
     if (channels[channelName]) {
-      channels[channelName].delay.delayTime.value = delayTime;
+      channels[channelName]!.delay.delayTime.value = delayTime;
     }
   },
 
   setChannelDelayWet(channelName: ChannelName, wetValue: number) {
     if (channels[channelName]) {
-      channels[channelName].delay.wet.value = wetValue;
+      channels[channelName]!.delay.wet.value = wetValue;
     }
   },
 
   setChannelDelayFeedback(channelName: ChannelName, feedbackValue: number) {
     if (channels[channelName]) {
-      channels[channelName].delay.feedback.value = feedbackValue;
+      channels[channelName]!.delay.feedback.value = feedbackValue;
     }
   },
 
   setChannelReverbSend(channelName: ChannelName, sendAmount: number) {
     if (channels[channelName]) {
-      channels[channelName].reverbSend.gain.value = sendAmount;
+      channels[channelName]!.reverbSend.gain.value = sendAmount;
     }
   },
 
+  // --------------------------------------------------------------------------
+  // Dynamic sample selection per channel
+  // --------------------------------------------------------------------------
   async setChannelSample(channelName: ChannelName, newSampleIdx: number) {
-    if (!isInitialized || !channels[channelName]) { // TODO: remove this one you initialize on page load
+    if (!isInitialized || !channels[channelName]) {
       console.error(
         "Audio engine not initialized or channel not found:",
         channelName,
@@ -170,9 +173,7 @@ const audioEngine = {
 
     if (newSampleIdx < 0 || newSampleIdx >= availableSamples.length) {
       console.error(
-        `Invalid sample index for channel ${channelName}. Must be between 0 and ${
-          availableSamples.length - 1
-        }.`,
+        `Invalid sample index for channel ${channelName}. Must be between 0 and ${availableSamples.length - 1}.`,
       );
       return;
     }

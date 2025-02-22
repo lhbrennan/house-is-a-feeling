@@ -119,6 +119,32 @@ function App() {
     swingRef.current = swing;
   }, [swing]);
 
+  // --------------------------------------------------------------------------
+  // Auto-initialize the audio engine on first user interaction
+  // --------------------------------------------------------------------------
+  useEffect(() => {
+    const initAudioEngine = async () => {
+      await audioEngine.init();
+      setEngineReady(true);
+      console.log("Audio engine initialized via first user interaction.");
+    };
+
+    const handleFirstInteraction = () => {
+      initAudioEngine();
+      window.removeEventListener("click", handleFirstInteraction);
+      window.removeEventListener("touchstart", handleFirstInteraction);
+    };
+
+    // Listen for the very first interaction.
+    window.addEventListener("click", handleFirstInteraction);
+    window.addEventListener("touchstart", handleFirstInteraction);
+
+    return () => {
+      window.removeEventListener("click", handleFirstInteraction);
+      window.removeEventListener("touchstart", handleFirstInteraction);
+    };
+  }, []);
+
   // ──────────────────────────────────────────────────────────────
   // Create the main loop
   // ──────────────────────────────────────────────────────────────
@@ -188,13 +214,9 @@ function App() {
   };
 
   const handleStart = async () => {
+    // Ensure the audio context is resumed on user interaction.
     if (Tone.getContext().state !== "running") {
       await Tone.getContext().resume();
-    }
-
-    if (!engineReady) {
-      await audioEngine.init();
-      setEngineReady(true);
     }
 
     if (!loopRef.current) {
@@ -214,7 +236,6 @@ function App() {
   // ──────────────────────────────────────────────────────────────
   useEffect(() => {
     const handleSpaceKey = (e: KeyboardEvent) => {
-      // Avoid toggling if user is typing in an input
       if (
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement
@@ -245,8 +266,6 @@ function App() {
       applyAllChannelFx(channelFx);
       applyGlobalReverbSettings(globalReverbSettings);
     }
-    // We do NOT put channelControls/effects in the dep array
-    // because we don't want to re-run for every update.
   }, [engineReady]);
 
   // ──────────────────────────────────────────────────────────────
@@ -258,12 +277,14 @@ function App() {
     if (!engineReady) return;
     const anySolo = Object.values(controls).some((ctrl) => ctrl.solo);
 
-    Object.entries(controls).forEach(([channel, { mute, solo, volume, pan }]) => {
-          const effectiveMute = mute || (anySolo && !solo);
-          const volumeDb = effectiveMute ? -Infinity : Tone.gainToDb(volume);
-          audioEngine.setChannelVolume(channel as ChannelName, volumeDb);
-          audioEngine.setChannelPan(channel as ChannelName, pan);
-        });
+    Object.entries(controls).forEach(
+      ([channel, { mute, solo, volume, pan }]) => {
+        const effectiveMute = mute || (anySolo && !solo);
+        const volumeDb = effectiveMute ? -Infinity : Tone.gainToDb(volume);
+        audioEngine.setChannelVolume(channel as ChannelName, volumeDb);
+        audioEngine.setChannelPan(channel as ChannelName, pan);
+      },
+    );
   }
 
   const onChangeChannel = (
@@ -275,7 +296,6 @@ function App() {
       next[channel] = { ...prev[channel], ...partial };
 
       applyAllChannelControls(next);
-
       return next;
     });
   };
@@ -349,20 +369,14 @@ function App() {
   return (
     <div className="flex h-screen justify-center">
       <div className="space-y-6 p-4">
-        {/* ───────────────────────────────────────────────────── */}
         {/* Top Section: Transport and BPM */}
-        {/* ───────────────────────────────────────────────────── */}
         <div className="flex flex-col space-y-4 p-4">
           <div className="flex items-center space-x-4">
-            {/* Global Effects */}
             <Button onClick={() => setIsGlobalReverbDialogOpen(true)}>
               Global Effects
             </Button>
-
             <Button onClick={handleStart}>Start</Button>
             <Button onClick={handleStop}>Stop</Button>
-
-            {/* BPM */}
             <Label htmlFor="bpm">BPM:</Label>
             <Input
               id="bpm"
@@ -371,8 +385,6 @@ function App() {
               onChange={handleBpmChange}
               className="w-20"
             />
-
-            {/* Swing */}
             <div className="flex items-center space-x-2">
               <Label htmlFor="swing">Swing:</Label>
               <Slider
@@ -388,9 +400,7 @@ function App() {
           </div>
         </div>
 
-        {/* ───────────────────────────────────────────────────── */}
         {/* Main Section: ChannelControls, Grid, & ChannelFx */}
-        {/* ───────────────────────────────────────────────────── */}
         <div className="flex">
           <ChannelControls
             channelNames={CHANNEL_NAMES}
@@ -398,7 +408,9 @@ function App() {
             onChangeChannel={onChangeChannel}
             selectedSampleIndexes={selectedSampleIndexes}
             onChangeChannelSample={handleChannelSampleChange}
-            playNoteImmediately={(channel: ChannelName) => audioEngine.playNote(channel, Tone.now(), 1)}
+            playNoteImmediately={(channel: ChannelName) =>
+              audioEngine.playNote(channel, Tone.now(), 1)
+            }
           />
 
           <Grid
@@ -431,7 +443,6 @@ function App() {
               <SelectItem value="4m">4 Measures</SelectItem>
             </SelectContent>
           </Select>
-
           <Button onClick={handleDuplicatePattern}>Duplicate Pattern</Button>
         </div>
       </div>
