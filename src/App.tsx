@@ -292,13 +292,13 @@ function App() {
   // ──────────────────────────────────────────────────────────────
   // Channel Effects (Delay, Reverb Send)
   // ──────────────────────────────────────────────────────────────
-  function applyAllChannelFx(effects: Record<string, ChannelFxState>) {
+  function applyAllChannelFx(effects: Record<ChannelName, ChannelFxState>) {
     if (!engineReady) return;
     Object.entries(effects).forEach(([channel, fx]) => {
-      audioEngine.setChannelDelayTime(channel, fx.time);
-      audioEngine.setChannelDelayWet(channel, fx.wet);
-      audioEngine.setChannelDelayFeedback(channel, fx.feedback);
-      audioEngine.setChannelReverbSend(channel, fx.reverbSend);
+      audioEngine.setChannelDelayTime(channel as ChannelName, fx.time);
+      audioEngine.setChannelDelayWet(channel as ChannelName, fx.wet);
+      audioEngine.setChannelDelayFeedback(channel as ChannelName, fx.feedback);
+      audioEngine.setChannelReverbSend(channel as ChannelName, fx.reverbSend);
     });
   }
 

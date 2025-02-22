@@ -15,7 +15,7 @@ export type ChannelName = (typeof CHANNEL_NAMES)[number];
 
 export const SAMPLES: Record<ChannelName, string[]> = {
   Perc2: ["perc_2", "reverse_hat", "long_hat"],
-  Perc1: ["perc_1, rim"],
+  Perc1: ["perc_1", "rim"],
   OpenHat: [
     "open_hat_1",
     "open_hat_2",
