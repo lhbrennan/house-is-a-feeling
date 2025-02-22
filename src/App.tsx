@@ -1,4 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
+
+import { ThemeProvider } from "@/components/theme-provider";
 import * as Tone from "tone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +19,7 @@ import { Grid } from "@/components/grid";
 import { useGrid } from "./use-grid";
 import { ChannelControls } from "@/components/channel-controls";
 import { ChannelFxDialog } from "@/components/channel-fx-dialog";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { ChannelFx } from "@/components/channel-fx";
 import { GlobalFxDialog } from "@/components/global-fx-dialog";
 import { SAMPLES, CHANNEL_NAMES, type ChannelName } from "./constants";
@@ -368,104 +371,111 @@ function App() {
   };
 
   return (
-    <div className="flex h-screen justify-center">
-      <div className="space-y-6 p-4">
-        {/* Top Section: Transport and BPM */}
-        <div className="flex flex-col space-y-4 p-4">
-          <div className="flex items-center space-x-4">
-            <Button onClick={() => setIsGlobalReverbDialogOpen(true)}>
-              Global Effects
-            </Button>
-            <Button onClick={handleStart}>Start</Button>
-            <Button onClick={handleStop}>Stop</Button>
-            <Label htmlFor="bpm">BPM:</Label>
-            <Input
-              id="bpm"
-              type="number"
-              value={bpm}
-              onChange={handleBpmChange}
-              className="w-20"
-            />
-            <div className="flex items-center space-x-2">
-              <Label htmlFor="swing">Swing:</Label>
-              <Slider
-                id="swing"
-                value={[swing]}
-                onValueChange={([val]) => setSwing(val)}
-                max={0.5}
-                step={0.01}
-                className="w-32"
+    <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+      <div className="flex h-screen justify-center">
+        <div className="space-y-6 p-4">
+          {/* Top Section: Transport and BPM */}
+          <div className="flex flex-col space-y-4 p-4">
+            <div className="flex items-center space-x-4">
+              <Button onClick={() => setIsGlobalReverbDialogOpen(true)}>
+                Global Effects
+              </Button>
+              <Button onClick={handleStart}>Start</Button>
+              <Button onClick={handleStop}>Stop</Button>
+              <Label htmlFor="bpm">BPM:</Label>
+              <Input
+                id="bpm"
+                type="number"
+                value={bpm}
+                onChange={handleBpmChange}
+                className="w-20"
               />
-              <span>{Math.round(swing * 100)}%</span>
+              <div className="flex items-center space-x-2">
+                <Label htmlFor="swing">Swing:</Label>
+                <Slider
+                  id="swing"
+                  value={[swing]}
+                  onValueChange={([val]) => setSwing(val)}
+                  max={0.5}
+                  step={0.01}
+                  className="w-32"
+                />
+                <span>{Math.round(swing * 100)}%</span>
+              </div>
+              <ThemeToggle />
+            </div>
+          </div>
+
+          {/* Main Section: ChannelControls, Grid, & ChannelFx */}
+          <div className="flex">
+            <ChannelControls
+              channelNames={CHANNEL_NAMES}
+              channelControls={channelControls}
+              onChangeChannel={onChangeChannel}
+              selectedSampleIndexes={selectedSampleIndexes}
+              onChangeChannelSample={handleChannelSampleChange}
+              playNoteImmediately={(channel: ChannelName) =>
+                audioEngine.playNote(channel, Tone.now(), 1)
+              }
+            />
+
+            <Grid
+              grid={grid}
+              toggleCell={toggleCell}
+              numVisibleSteps={numVisibleSteps}
+              currentStep={currentStep}
+            />
+
+            <ChannelFx
+              channelFx={channelFx}
+              handleChannelFxChange={handleChannelFxChange}
+              setActiveChannelFxDialog={setActiveChannelFxDialog}
+            />
+          </div>
+
+          {/* Bottom: Loop length + Duplicate Pattern */}
+          <div className="flex items-center gap-3">
+            <Select
+              value={loopLength}
+              onValueChange={(val) => handleLoopLengthChange(val as LoopLength)}
+            >
+              <SelectTrigger className="w-[140px]">
+                <SelectValue placeholder="Select" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1m">1 Measure</SelectItem>
+                <SelectItem value="2m">2 Measures</SelectItem>
+                <SelectItem value="4m">4 Measures</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button onClick={handleDuplicatePattern}>Duplicate</Button>
+
+            <div className="flex items-center gap-3">
+              <Button onClick={() => shiftGrid("left", numVisibleSteps)}>
+                Shift Left
+              </Button>
+              <Button onClick={() => shiftGrid("right", numVisibleSteps)}>
+                Shift Right
+              </Button>
             </div>
           </div>
         </div>
 
-        {/* Main Section: ChannelControls, Grid, & ChannelFx */}
-        <div className="flex">
-          <ChannelControls
-            channelNames={CHANNEL_NAMES}
-            channelControls={channelControls}
-            onChangeChannel={onChangeChannel}
-            selectedSampleIndexes={selectedSampleIndexes}
-            onChangeChannelSample={handleChannelSampleChange}
-            playNoteImmediately={(channel: ChannelName) =>
-              audioEngine.playNote(channel, Tone.now(), 1)
-            }
-          />
+        <ChannelFxDialog
+          channel={activeChannelFxDialog}
+          channelFx={activeChannelFxDialog && channelFx[activeChannelFxDialog]}
+          handleChannelFxChange={handleChannelFxChange}
+          onClose={() => setActiveChannelFxDialog(null)}
+        />
 
-          <Grid
-            grid={grid}
-            toggleCell={toggleCell}
-            numVisibleSteps={numVisibleSteps}
-            currentStep={currentStep}
-          />
-
-          <ChannelFx
-            channelFx={channelFx}
-            handleChannelFxChange={handleChannelFxChange}
-            setActiveChannelFxDialog={setActiveChannelFxDialog}
-          />
-        </div>
-
-        {/* Bottom: Loop length + Duplicate Pattern */}
-        <div className="flex items-center gap-3">
-          <Select
-            value={loopLength}
-            onValueChange={(val) => handleLoopLengthChange(val as LoopLength)}
-          >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Select" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="1m">1 Measure</SelectItem>
-              <SelectItem value="2m">2 Measures</SelectItem>
-              <SelectItem value="4m">4 Measures</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button onClick={handleDuplicatePattern}>Duplicate</Button>
-
-          <div className="flex items-center gap-3">
-            <Button onClick={() => shiftGrid("left", numVisibleSteps)}>Shift Left</Button>
-            <Button onClick={() => shiftGrid("right", numVisibleSteps)}>Shift Right</Button>
-          </div>
-        </div>
+        <GlobalFxDialog
+          isOpen={isGlobalReverbDialogOpen}
+          globalReverbSettings={globalReverbSettings}
+          handleGlobalReverbChange={handleGlobalReverbChange}
+          setOpen={setIsGlobalReverbDialogOpen}
+        />
       </div>
-
-      <ChannelFxDialog
-        channel={activeChannelFxDialog}
-        channelFx={activeChannelFxDialog && channelFx[activeChannelFxDialog]}
-        handleChannelFxChange={handleChannelFxChange}
-        onClose={() => setActiveChannelFxDialog(null)}
-      />
-
-      <GlobalFxDialog
-        isOpen={isGlobalReverbDialogOpen}
-        globalReverbSettings={globalReverbSettings}
-        handleGlobalReverbChange={handleGlobalReverbChange}
-        setOpen={setIsGlobalReverbDialogOpen}
-      />
-    </div>
+    </ThemeProvider>
   );
 }
 

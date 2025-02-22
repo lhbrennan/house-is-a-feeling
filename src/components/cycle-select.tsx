@@ -7,11 +7,7 @@ import {
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover";
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ArrowLeftIcon,
-} from "@radix-ui/react-icons";
+import { ChevronLeft, ChevronRight, ArrowLeft } from "lucide-react";
 
 export const CYCLE_SELECT_COLORS = [
   "oklch(0.541 0.281 293.009)",
@@ -38,7 +34,7 @@ export function CycleSelect({
   options,
   selectedSampleIdx,
   onChange,
-  color = 'black',
+  color = "black",
   dotSize = 16,
   onDotClick,
   className,
@@ -97,7 +93,7 @@ export function CycleSelect({
           disabled={options.length < 2}
           className="cursor-pointer px-2 py-1 disabled:opacity-50"
         >
-          <ChevronLeftIcon className="h-4 w-4" />
+          <ChevronLeft className="h-4 w-4" />
         </button>
 
         {/* Dot container wrapped in a controlled Popover */}
@@ -145,7 +141,7 @@ export function CycleSelect({
                 >
                   <span>{sample}</span>
                   {selectedValue === sample && (
-                    <ArrowLeftIcon className="h-4 w-4 text-gray-500" />
+                    <ArrowLeft className="h-4 w-4 text-gray-500" />
                   )}
                 </div>
               ))}
@@ -159,7 +155,7 @@ export function CycleSelect({
           disabled={options.length < 2}
           className="cursor-pointer px-2 py-1 disabled:opacity-50"
         >
-          <ChevronRightIcon className="h-4 w-4" />
+          <ChevronRight className="h-4 w-4" />
         </button>
       </div>
     </div>
