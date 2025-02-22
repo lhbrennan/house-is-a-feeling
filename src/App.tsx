@@ -108,7 +108,8 @@ function App() {
     useState(false);
 
   // Sequencer grid
-  const { grid, gridRef, toggleCell, duplicatePattern } = useGrid(NUM_CHANNELS);
+  const { grid, gridRef, toggleCell, duplicateGrid, shiftGrid } =
+    useGrid(NUM_CHANNELS);
   const loopRef = useRef<Tone.Loop | null>(null);
   const stepCounterRef = useRef(0);
   const numVisibleSteps = STEPS_MAP[loopLength];
@@ -205,7 +206,7 @@ function App() {
   };
 
   const handleDuplicatePattern = () => {
-    duplicatePattern(loopLength);
+    duplicateGrid(loopLength);
     if (loopLength === "1m") {
       setLoopLength("2m");
     } else if (loopLength === "2m") {
@@ -429,7 +430,6 @@ function App() {
 
         {/* Bottom: Loop length + Duplicate Pattern */}
         <div className="flex items-center gap-3">
-          <span>Loop Length:</span>
           <Select
             value={loopLength}
             onValueChange={(val) => handleLoopLengthChange(val as LoopLength)}
@@ -443,7 +443,12 @@ function App() {
               <SelectItem value="4m">4 Measures</SelectItem>
             </SelectContent>
           </Select>
-          <Button onClick={handleDuplicatePattern}>Duplicate Pattern</Button>
+          <Button onClick={handleDuplicatePattern}>Duplicate</Button>
+
+          <div className="flex items-center gap-3">
+            <Button onClick={() => shiftGrid("left", numVisibleSteps)}>Shift Left</Button>
+            <Button onClick={() => shiftGrid("right", numVisibleSteps)}>Shift Right</Button>
+          </div>
         </div>
       </div>
 

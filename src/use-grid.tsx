@@ -24,10 +24,10 @@ export function useGrid(numChannels: number) {
       ),
     );
   };
-  
+
   // Duplicate pattern logic based on the current loop length.
   // Note: This function only manipulates the grid.
-  const duplicatePattern = (currentLoopLength: LoopLength) => {
+  const duplicateGrid = (currentLoopLength: LoopLength) => {
     if (currentLoopLength === "1m") {
       // Duplicate first 16 steps into steps 16-31
       setGrid((prev) =>
@@ -53,5 +53,22 @@ export function useGrid(numChannels: number) {
     }
   };
 
-  return { grid, gridRef, toggleCell, duplicatePattern, setGrid };
+  const shiftGrid = (direction: "left" | "right", numVisibleSteps: number) => {
+    setGrid((prevGrid) =>
+      prevGrid.map((row) => {
+        const visible = row.slice(0, numVisibleSteps);
+        const hidden = row.slice(numVisibleSteps);
+
+        let shiftedVisible: typeof visible;
+        if (direction === "left") {
+          shiftedVisible = [...visible.slice(1), visible[0]];
+        } else {
+          shiftedVisible = [visible[visible.length - 1], ...visible.slice(0, visible.length - 1)];
+        }
+        return shiftedVisible.concat(hidden);
+      }),
+    );
+  };
+
+  return { grid, gridRef, toggleCell, duplicateGrid, setGrid, shiftGrid };
 }
