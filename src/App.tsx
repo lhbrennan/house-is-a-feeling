@@ -19,7 +19,7 @@ import { ChannelControls } from "@/components/channel-controls";
 import { ChannelFxDialog } from "@/components/channel-fx-dialog";
 import { ChannelFx } from "@/components/channel-fx";
 import { GlobalFxDialog } from "@/components/global-fx-dialog";
-import { CHANNEL_NAMES, type ChannelName } from "./constants";
+import { SAMPLES, CHANNEL_NAMES, type ChannelName } from "./constants";
 import type {
   PadVelocity,
   ChannelFxState,
@@ -63,6 +63,10 @@ const initialGlobalReverbSettings: GlobalReverbSettings = {
   wet: 1,
 };
 
+const initialSelectedSampleIndexes = Object.fromEntries(
+  CHANNEL_NAMES.map((channel) => [channel, 0]),
+) as Record<ChannelName, number>;
+
 function getNormalizedVelocity(padVelocity: PadVelocity) {
   switch (padVelocity) {
     case 3:
@@ -92,6 +96,9 @@ function App() {
   const [channelFx, setChannelFx] = useState(initialChannelFx);
   const [globalReverbSettings, setGlobalReverbSettings] = useState(
     initialGlobalReverbSettings,
+  );
+  const [selectedSampleIndexes, setSelectedSampleIndexes] = useState(
+    initialSelectedSampleIndexes,
   );
 
   // Dialog states
@@ -273,6 +280,15 @@ function App() {
     });
   };
 
+  const handleChannelSampleChange = async (
+    channel: ChannelName,
+    sampleIdx: number,
+  ) => {
+    const safeIndex = sampleIdx % SAMPLES[channel].length;
+    await audioEngine.setChannelSample(channel, safeIndex);
+    setSelectedSampleIndexes((prev) => ({ ...prev, [channel]: safeIndex }));
+  };
+
   // ──────────────────────────────────────────────────────────────
   // Channel Effects (Delay, Reverb Send)
   // ──────────────────────────────────────────────────────────────
@@ -336,15 +352,15 @@ function App() {
         {/* ───────────────────────────────────────────────────── */}
         {/* Top Section: Transport and BPM */}
         {/* ───────────────────────────────────────────────────── */}
-        <div className="flex flex-col space-y-4 rounded border p-4">
+        <div className="flex flex-col space-y-4 p-4">
           <div className="flex items-center space-x-4">
-            <Button onClick={handleStart}>Start</Button>
-            <Button onClick={handleStop}>Stop</Button>
-
             {/* Global Effects */}
             <Button onClick={() => setIsGlobalReverbDialogOpen(true)}>
               Global Effects
             </Button>
+
+            <Button onClick={handleStart}>Start</Button>
+            <Button onClick={handleStop}>Stop</Button>
 
             {/* BPM */}
             <Label htmlFor="bpm">BPM:</Label>
@@ -380,6 +396,8 @@ function App() {
             channelNames={CHANNEL_NAMES}
             channelControls={channelControls}
             onChangeChannel={onChangeChannel}
+            selectedSampleIndexes={selectedSampleIndexes}
+            onChangeChannelSample={handleChannelSampleChange}
           />
 
           <Grid

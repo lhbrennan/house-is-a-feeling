@@ -4,7 +4,7 @@ import { Slider } from "@/components/ui/slider";
 
 import { CycleSelect } from "./cycle-select";
 
-import type { ChannelNames } from "@/constants";
+import { SAMPLES, type ChannelNames, type ChannelName } from "@/constants";
 
 export type ChannelControl = {
   mute: boolean;
@@ -17,12 +17,16 @@ type ChannelControlsProps = {
   channelControls: Record<string, ChannelControl>;
   onChangeChannel: (note: string, partial: Partial<ChannelControl>) => void;
   channelNames: ChannelNames;
+  selectedSampleIndexes: Record<ChannelName, number>;
+  onChangeChannelSample: (channel: ChannelName, sampleIdx: number) => void;
 };
 
 export function ChannelControls({
   channelControls,
   onChangeChannel,
   channelNames,
+  selectedSampleIndexes,
+  onChangeChannelSample,
 }: ChannelControlsProps) {
   return (
     <div className="mr-4 flex flex-col gap-[10px]">
@@ -39,16 +43,16 @@ export function ChannelControls({
               <div className="mr-4 w-20 text-center capitalize">{channel}</div>
 
               <CycleSelect
-                options={["kick 1", "kick 2", "kick 3"]}
-                onChange={() => {}}
-                selectedValue={"kick 1"}
+                options={SAMPLES[channel]}
+                onChange={(newIdx) => onChangeChannelSample(channel, newIdx)}
+                selectedSampleIdx={selectedSampleIndexes[channel]}
                 onDotClick={() => {
                   console.log("Dot clicked");
                 }}
                 className="mr-4"
               />
               <Slider
-                className="max-w-[120px] min-w-[80px]"
+                className="mr-4 max-w-[120px] min-w-[80px]"
                 value={[volume]}
                 onValueChange={(newVolume: number[]) =>
                   onChangeChannel(channel, { volume: newVolume[0] })

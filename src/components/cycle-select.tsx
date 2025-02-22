@@ -7,12 +7,12 @@ import {
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover";
-import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
+import { ChevronLeftIcon, ChevronRightIcon, ArrowLeftIcon } from "@radix-ui/react-icons";
 
 type CycleSelectProps = {
   options: string[];
-  selectedValue: string;
-  onChange: (selected: string) => void;
+  selectedSampleIdx: number;
+  onChange: (newSampleIdx: number) => void;
   color?: string;
   dotSize?: number;
   onDotClick?: () => void;
@@ -21,15 +21,14 @@ type CycleSelectProps = {
 
 export function CycleSelect({
   options,
-  selectedValue,
+  selectedSampleIdx,
   onChange,
   color = "#3498db",
   dotSize = 16,
   onDotClick,
   className,
 }: CycleSelectProps) {
-  const currentIndex = options.indexOf(selectedValue);
-  const safeIndex = currentIndex >= 0 ? currentIndex : 0;
+  const selectedValue = options[selectedSampleIdx];
 
   // State to track the animation direction (+1: next, -1: previous)
   const [direction, setDirection] = useState<1 | -1>(1);
@@ -38,15 +37,15 @@ export function CycleSelect({
   const handlePrev = () => {
     if (options.length < 2) return;
     setDirection(-1);
-    const newIndex = (safeIndex - 1 + options.length) % options.length;
-    onChange(options[newIndex]);
+    const newIndex = (selectedSampleIdx - 1 + options.length) % options.length;
+    onChange(newIndex);
   };
 
   const handleNext = () => {
     if (options.length < 2) return;
     setDirection(1);
-    const newIndex = (safeIndex + 1) % options.length;
-    onChange(options[newIndex]);
+    const newIndex = (selectedSampleIdx + 1) % options.length;
+    onChange(newIndex);
   };
 
   // Left click triggers both onDotClick and opens the popover.
@@ -97,7 +96,7 @@ export function CycleSelect({
               <div className="absolute inset-0 flex items-center justify-center">
                 <AnimatePresence mode="wait" custom={direction}>
                   <motion.div
-                    key={safeIndex}
+                    key={selectedSampleIdx}
                     className="rounded-full"
                     style={{
                       backgroundColor: color,
@@ -117,16 +116,22 @@ export function CycleSelect({
           </PopoverTrigger>
           <PopoverContent className="w-48">
             <div className="max-h-60 overflow-auto">
-              {options.map((sample) => (
+              {options.map((sample, idx) => (
                 <div
                   key={sample}
                   onClick={() => {
-                    onChange(sample);
+                    onChange(idx);
                     setIsPopoverOpen(false);
                   }}
-                  className="cursor-pointer p-2 hover:bg-gray-200"
+                  className={cn(
+                    "cursor-pointer p-2 hover:bg-gray-200 flex items-center justify-between",
+                    selectedValue === sample && "bg-gray-200 font-semibold"
+                  )}
                 >
-                  {sample}
+                  <span>{sample}</span>
+                  {selectedValue === sample && (
+                    <ArrowLeftIcon className="h-4 w-4 text-gray-500" />
+                  )}
                 </div>
               ))}
             </div>
