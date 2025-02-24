@@ -386,7 +386,7 @@ function App() {
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
       <div className="flex h-screen justify-center">
         <div className="space-y-6 p-4">
-          <h1 className="neon-text text-center text-3xl font-bold text-black drop-shadow-lg">
+          <h1 className="text-center font-[Chicle] text-4xl font-bold text-black drop-shadow-lg dark:text-white">
             House is a Feeling
           </h1>
           {/* Top Section: Transport and BPM */}
