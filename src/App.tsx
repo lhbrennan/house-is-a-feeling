@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-
+import { Play, Octagon } from "lucide-react";
 import { ThemeProvider } from "@/components/theme-provider";
 import * as Tone from "tone";
 import { Button } from "@/components/ui/button";
@@ -124,6 +124,8 @@ function App() {
     swingRef.current = swing;
   }, [swing]);
 
+  // Track if currently playing in both a ref and a state variable
+  const [isPlaying, setIsPlaying] = useState(false);
   const isPlayingRef = useRef(false);
 
   // --------------------------------------------------------------------------
@@ -227,6 +229,8 @@ function App() {
       await Tone.getContext().resume();
     }
     isPlayingRef.current = true;
+    setIsPlaying(true);
+
     if (!loopRef.current) {
       loopRef.current = createToneLoop();
       loopRef.current.start(0);
@@ -240,8 +244,18 @@ function App() {
     }
     audioEngine.stopTransport();
     isPlayingRef.current = false;
+    setIsPlaying(false);
+
     setCurrentStep(null);
     stepCounterRef.current = 0;
+  };
+
+  const handleTogglePlay = async () => {
+    if (!isPlaying) {
+      await handleStart();
+    } else {
+      handleStop();
+    }
   };
 
   // ──────────────────────────────────────────────────────────────
@@ -249,6 +263,7 @@ function App() {
   // ──────────────────────────────────────────────────────────────
   useEffect(() => {
     const handleSpaceKey = (e: KeyboardEvent) => {
+      // prevent conflicts when typing in an input
       if (
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement
@@ -389,14 +404,28 @@ function App() {
           <h1 className="text-center font-[Chicle] text-4xl font-bold text-black drop-shadow-lg dark:text-white">
             House is a Feeling
           </h1>
+
           {/* Top Section: Transport and BPM */}
           <div className="flex flex-col space-y-4 p-4">
             <div className="flex items-center space-x-4">
               <Button onClick={() => setIsGlobalReverbDialogOpen(true)}>
                 Global Effects
               </Button>
-              <Button onClick={handleStart}>Start</Button>
-              <Button onClick={handleStop}>Stop</Button>
+
+              <Button onClick={handleTogglePlay}>
+                {isPlaying ? (
+                  <>
+                    <Octagon className="mr-2 h-4 w-4" />
+                    Stop
+                  </>
+                ) : (
+                  <>
+                    <Play className="mr-2 h-4 w-4" />
+                    Play
+                  </>
+                )}
+              </Button>
+
               <Label htmlFor="bpm">BPM:</Label>
               <Input
                 id="bpm"
@@ -405,6 +434,7 @@ function App() {
                 onChange={handleBpmChange}
                 className="w-20"
               />
+
               <div className="flex items-center space-x-2">
                 <Label htmlFor="swing">Swing:</Label>
                 <Slider
@@ -417,6 +447,7 @@ function App() {
                 />
                 <span>{Math.round(swing * 100)}%</span>
               </div>
+
               <ThemeToggle />
             </div>
           </div>
@@ -469,6 +500,7 @@ function App() {
                 <SelectItem value="4m">4 Measures</SelectItem>
               </SelectContent>
             </Select>
+
             <Button onClick={handleDuplicatePattern}>Duplicate</Button>
 
             <div className="flex items-center gap-3">
