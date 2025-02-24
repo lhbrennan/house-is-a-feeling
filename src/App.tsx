@@ -124,6 +124,8 @@ function App() {
     swingRef.current = swing;
   }, [swing]);
 
+  const isPlayingRef = useRef(false);
+
   // --------------------------------------------------------------------------
   // Auto-initialize the audio engine on first user interaction
   // --------------------------------------------------------------------------
@@ -177,7 +179,9 @@ function App() {
       });
 
       Tone.getDraw().schedule(() => {
-        setCurrentStep(step);
+        if (isPlayingRef.current) {
+          setCurrentStep(step);
+        }
       }, scheduledTime);
 
       stepCounterRef.current = (step + 1) % numVisibleSteps;
@@ -219,21 +223,25 @@ function App() {
   };
 
   const handleStart = async () => {
-    // Ensure the audio context is resumed on user interaction.
     if (Tone.getContext().state !== "running") {
       await Tone.getContext().resume();
     }
-
+    isPlayingRef.current = true;
     if (!loopRef.current) {
       loopRef.current = createToneLoop();
       loopRef.current.start(0);
     }
-
     audioEngine.startTransport();
   };
 
   const handleStop = () => {
+    if (isPlayingRef.current === false) {
+      return;
+    }
     audioEngine.stopTransport();
+    isPlayingRef.current = false;
+    setCurrentStep(null);
+    stepCounterRef.current = 0;
   };
 
   // ──────────────────────────────────────────────────────────────
@@ -427,7 +435,10 @@ function App() {
             />
 
             <div className="relative">
-              <Ruler currentStep={currentStep} numSteps={STEPS_MAP[loopLength]}/>
+              <Ruler
+                currentStep={currentStep}
+                numSteps={STEPS_MAP[loopLength]}
+              />
               <Grid
                 grid={grid}
                 toggleCell={toggleCell}
