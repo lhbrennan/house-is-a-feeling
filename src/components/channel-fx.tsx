@@ -22,7 +22,7 @@ function ChannelFx({
   setActiveChannelFxDialog,
 }: Props) {
   return (
-    <div className="ml-4 flex h-[390px] flex-col items-center justify-between">
+    <div className="ml-2 flex h-[390px] flex-col items-center justify-between">
       {CHANNEL_NAMES.map((channel) => {
         const { wet, reverbSend } = channelFx[channel];
         return (

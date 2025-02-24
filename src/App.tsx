@@ -16,6 +16,7 @@ import { Slider } from "@/components/ui/slider";
 
 import audioEngine from "./audio-engine";
 import { Grid } from "@/components/grid";
+import { Ruler } from "@/components/ruler";
 import { useGrid } from "./use-grid";
 import { ChannelControls } from "@/components/channel-controls";
 import { ChannelFxDialog } from "@/components/channel-fx-dialog";
@@ -370,10 +371,16 @@ function App() {
     });
   };
 
+  // ──────────────────────────────────────────────────────────────
+  // Render
+  // ──────────────────────────────────────────────────────────────
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
       <div className="flex h-screen justify-center">
         <div className="space-y-6 p-4">
+          <h1 className="neon-text text-center text-3xl font-bold text-black drop-shadow-lg">
+            House is a Feeling
+          </h1>
           {/* Top Section: Transport and BPM */}
           <div className="flex flex-col space-y-4 p-4">
             <div className="flex items-center space-x-4">
@@ -419,12 +426,15 @@ function App() {
               }
             />
 
-            <Grid
-              grid={grid}
-              toggleCell={toggleCell}
-              numVisibleSteps={numVisibleSteps}
-              currentStep={currentStep}
-            />
+            <div className="relative">
+              <Ruler currentStep={currentStep} numSteps={STEPS_MAP[loopLength]}/>
+              <Grid
+                grid={grid}
+                toggleCell={toggleCell}
+                numVisibleSteps={numVisibleSteps}
+                currentStep={currentStep}
+              />
+            </div>
 
             <ChannelFx
               channelFx={channelFx}

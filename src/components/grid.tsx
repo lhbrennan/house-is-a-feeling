@@ -15,7 +15,7 @@ export function Grid({
   currentStep,
 }: GridProps) {
   return (
-    <div className="overflow-x-auto pb-2">
+    <div className="overflow-x-auto pr-1.5 pb-2 pl-1.5">
       <div className="flex h-[390px] flex-col justify-between">
         {grid.map((row, rowIndex) => {
           const visibleSteps = row.slice(0, numVisibleSteps);

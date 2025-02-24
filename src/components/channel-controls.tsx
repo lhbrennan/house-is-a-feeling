@@ -33,7 +33,7 @@ export function ChannelControls({
   playNoteImmediately,
 }: ChannelControlsProps) {
   return (
-    <div className="mr-4 flex flex-col gap-[10px]">
+    <div className="flex flex-col gap-[10px]">
       {channelNames.map((channel, idx) => {
         const { volume, mute, solo, pan } = channelControls[channel];
         return (
@@ -48,20 +48,12 @@ export function ChannelControls({
                 className="mr-4"
               />
 
-              <div className="mr-4 w-20 text-center capitalize">{channel}</div>
+              <div className="mr-4 min-w-20 text-center capitalize">
+                {channel}
+              </div>
 
-              <CycleSelect
-                options={SAMPLES[channel]}
-                onChange={(newIdx) => onChangeChannelSample(channel, newIdx)}
-                selectedSampleIdx={selectedSampleIndexes[channel]}
-                onDotClick={() => {
-                  playNoteImmediately(channel);
-                }}
-                className="mr-4"
-                color={CYCLE_SELECT_COLORS[idx]}
-              />
               <Slider
-                className="mr-4 max-w-[120px] min-w-[80px]"
+                className="mr-4 max-w-[100px] min-w-[80px]"
                 value={[volume]}
                 onValueChange={(newVolume: number[]) =>
                   onChangeChannel(channel, { volume: newVolume[0] })
@@ -90,6 +82,15 @@ export function ChannelControls({
               >
                 S
               </Toggle>
+              <CycleSelect
+                options={SAMPLES[channel]}
+                onChange={(newIdx) => onChangeChannelSample(channel, newIdx)}
+                selectedSampleIdx={selectedSampleIndexes[channel]}
+                onDotClick={() => {
+                  playNoteImmediately(channel);
+                }}
+                color={CYCLE_SELECT_COLORS[idx]}
+              />
             </div>
           </div>
         );
@@ -110,39 +111,39 @@ function PanSlider({
   // Map value from [-1, 1] to a percentage (0% to 100%).
   const thumbPercent = ((value + 1) / 2) * 100;
 
-  let fillStyle = {};
+  let rangeStyle = {};
   if (value > 0) {
-    fillStyle = {
+    rangeStyle = {
       left: "50%",
       width: `${thumbPercent - 50}%`,
     };
   } else if (value < 0) {
-    fillStyle = {
+    rangeStyle = {
       left: `${thumbPercent}%`,
       width: `${50 - thumbPercent}%`,
     };
   } else {
-    fillStyle = { left: "50%", width: "0%" };
+    rangeStyle = { left: "50%", width: "0%" };
   }
 
   return (
-    <div className={cn("relative w-32 py-4", className)}>
+    <div className={cn("relative min-w-16 py-2", className)}>
       <RadixSlider.Root
-        className="relative flex w-full items-center"
+        className="relative flex w-full touch-none items-center select-none"
         value={[value]}
         onValueChange={(values) => onChange(values[0])}
         min={-1}
         max={1}
         step={0.25}
       >
-        <RadixSlider.Track className="relative h-2 w-full rounded-full bg-gray-300">
-          {/* Custom fill indicator from the center */}
+        <RadixSlider.Track className="relative h-1.5 w-full rounded-full bg-slate-200 dark:bg-slate-700">
+          {/* Custom range from center */}
           <div
-            className="absolute h-full rounded-full bg-blue-500"
-            style={fillStyle}
+            className="absolute h-full rounded-full bg-black"
+            style={rangeStyle}
           />
         </RadixSlider.Track>
-        <RadixSlider.Thumb className="block h-4 w-4 rounded-full border border-gray-400 bg-white shadow-md" />
+        <RadixSlider.Thumb className="block h-4 w-4 rounded-full border border-slate-300 bg-white shadow-sm focus:ring-1 focus:ring-black focus:outline-none" />
       </RadixSlider.Root>
     </div>
   );
