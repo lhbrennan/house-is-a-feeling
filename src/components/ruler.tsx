@@ -13,9 +13,9 @@ export function Ruler({ currentStep, numSteps }: Props) {
 
   const getAnimationClass = (beatIndex: number) => {
     if (beatIndex === activeBeat) {
-      return "text-white bg-black";
+      return "bg-primary text-primary-foreground";
     }
-    return "text-gray-500";
+    return "text-muted-foreground";
   };
 
   return (

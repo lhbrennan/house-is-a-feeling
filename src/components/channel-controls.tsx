@@ -136,14 +136,13 @@ function PanSlider({
         max={1}
         step={0.25}
       >
-        <RadixSlider.Track className="relative h-1.5 w-full rounded-full bg-slate-200 dark:bg-slate-700">
-          {/* Custom range from center */}
+        <RadixSlider.Track className="relative h-1.5 w-full rounded-full bg-muted">
           <div
-            className="absolute h-full rounded-full bg-black"
+            className="absolute h-full rounded-full bg-primary"
             style={rangeStyle}
           />
         </RadixSlider.Track>
-        <RadixSlider.Thumb className="block h-4 w-4 rounded-full border border-slate-300 bg-white shadow-sm focus:ring-1 focus:ring-black focus:outline-none" />
+        <RadixSlider.Thumb className="block h-4 w-4 rounded-full border border-border bg-card shadow-sm focus:ring-1 focus:ring-ring focus:outline-none" />
       </RadixSlider.Root>
     </div>
   );

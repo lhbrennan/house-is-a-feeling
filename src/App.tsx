@@ -395,7 +395,7 @@ function App() {
 
         <div className="flex h-full justify-center">
           <div className="space-y-6 p-4">
-            <h1 className="text-center font-[Chicle] text-4xl font-bold text-black drop-shadow-lg dark:text-white">
+            <h1 className="text-center font-[Chicle] text-4xl font-bold text-foreground drop-shadow-lg">
               House is a Feeling
             </h1>
 
