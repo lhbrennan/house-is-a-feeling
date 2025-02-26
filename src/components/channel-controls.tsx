@@ -39,7 +39,7 @@ export function ChannelControls({
         return (
           <div
             key={channel}
-            className="flex items-center space-x-4 rounded pt-0 pr-2 pb-0 pl-2"
+            className="flex items-center space-x-4 rounded pt-0 pr-2 pb-0"
           >
             <div className="flex h-10 min-w-md items-center justify-between">
               <PanSlider

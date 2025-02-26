@@ -28,7 +28,7 @@ function ChannelFx({
         return (
           <div
             key={channel}
-            className="flex items-center justify-between space-x-4 rounded pr-2 pl-2"
+            className="flex items-center justify-between space-x-4 rounded pl-2"
           >
             {/* Delay Wet */}
             <div className="flex grow">

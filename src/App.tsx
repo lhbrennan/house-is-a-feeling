@@ -411,48 +411,49 @@ function App() {
             </h1>
 
             {/* Top Section: Transport and BPM */}
-            <div className="flex flex-col space-y-4 p-4">
-              <div className="flex items-center space-x-4">
-                <Button onClick={() => setIsGlobalReverbDialogOpen(true)}>
-                  Global Effects
-                </Button>
+            <div className="flex items-center space-x-4 pb-4">
+              <Label htmlFor="bpm">BPM:</Label>
+              <Input
+                id="bpm"
+                type="number"
+                value={bpm}
+                onChange={handleBpmChange}
+                className="w-20"
+              />
 
-                <Button onClick={handleTogglePlay}>
-                  {isPlaying ? (
-                    <>
-                      <Octagon className="mr-2 h-4 w-4" />
-                      Stop
-                    </>
-                  ) : (
-                    <>
-                      <Play className="mr-2 h-4 w-4" />
-                      Play
-                    </>
-                  )}
-                </Button>
-
-                <Label htmlFor="bpm">BPM:</Label>
-                <Input
-                  id="bpm"
-                  type="number"
-                  value={bpm}
-                  onChange={handleBpmChange}
-                  className="w-20"
+              <div className="flex items-center space-x-2">
+                <Label htmlFor="swing">Swing:</Label>
+                <Slider
+                  id="swing"
+                  value={[swing]}
+                  onValueChange={([val]) => setSwing(val)}
+                  max={0.5}
+                  step={0.01}
+                  className="w-32"
                 />
-
-                <div className="flex items-center space-x-2">
-                  <Label htmlFor="swing">Swing:</Label>
-                  <Slider
-                    id="swing"
-                    value={[swing]}
-                    onValueChange={([val]) => setSwing(val)}
-                    max={0.5}
-                    step={0.01}
-                    className="w-32"
-                  />
-                  <span>{Math.round(swing * 100)}%</span>
-                </div>
+                <span>{Math.round(swing * 100)}%</span>
               </div>
+
+              <Button onClick={handleTogglePlay}>
+                {isPlaying ? (
+                  <>
+                    <Octagon className="mr-2 h-4 w-4" />
+                    Stop
+                  </>
+                ) : (
+                  <>
+                    <Play className="mr-2 h-4 w-4" />
+                    Play
+                  </>
+                )}
+              </Button>
+
+              <Button
+                onClick={() => setIsGlobalReverbDialogOpen(true)}
+                className="ml-auto"
+              >
+                Global Effects
+              </Button>
             </div>
 
             {/* Main Section: ChannelControls, Grid, & ChannelFx */}
@@ -486,7 +487,7 @@ function App() {
             </div>
 
             {/* Bottom: Loop length + Duplicate Pattern */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center justify-center gap-3">
               <Select
                 value={loopLength}
                 onValueChange={(val) =>
