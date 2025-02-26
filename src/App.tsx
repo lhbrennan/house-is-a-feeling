@@ -8,6 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Toggle } from "@/components/ui/toggle";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+
 import audioEngine from "./audio-engine";
 import { Grid } from "@/components/grid";
 import { Ruler } from "@/components/ruler";
@@ -66,6 +75,7 @@ const initialSelectedSampleIndexes: Record<ChannelName, number> =
     number
   >;
 
+/** Utility to convert pad velocity (1..3) to gain (0..1). */
 function getNormalizedVelocity(velocity: PadVelocity) {
   switch (velocity) {
     case 3:
@@ -134,6 +144,35 @@ function App() {
   const [isPlaying, setIsPlaying] = useState(false);
 
   // ──────────────────────────────────────────────────────────────
+  // Pattern Chain States, Moved to Refs
+  // ──────────────────────────────────────────────────────────────
+  // We keep the official "UI state" in normal React state,
+  // but we also store them in refs so the Tone.Loop callback sees updates.
+  const [chainEnabled, setChainEnabled] = useState(false);
+  const chainEnabledRef = useRef(chainEnabled);
+  useEffect(() => {
+    chainEnabledRef.current = chainEnabled;
+  }, [chainEnabled]);
+
+  const [chainLength, setChainLength] = useState(4);
+  const chainLengthRef = useRef(chainLength);
+  useEffect(() => {
+    chainLengthRef.current = chainLength;
+  }, [chainLength]);
+
+  const [patternChain, setPatternChain] = useState<
+    Array<"A" | "B" | "C" | "D">
+  >(["A", "A", "B", "B", "A", "A", "A", "A"]);
+  const patternChainRef = useRef(patternChain);
+  useEffect(() => {
+    patternChainRef.current = patternChain;
+  }, [patternChain]);
+
+  // We'll track which measure is playing for UI highlight
+  const measureCounterRef = useRef(0);
+  const [chainMeasure, setChainMeasure] = useState(0);
+
+  // ──────────────────────────────────────────────────────────────
   // Auto-initialize audio engine
   // ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -160,10 +199,9 @@ function App() {
   }, []);
 
   // ──────────────────────────────────────────────────────────────
-  // Create the main loop
+  // Create the main loop once
   // ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    // If a loop exists, dispose it first
     if (loopRef.current) {
       loopRef.current.dispose();
     }
@@ -178,7 +216,18 @@ function App() {
         scheduledTime = time + swingDelay;
       }
 
-      const patternGrid = patternsRef.current[currentPatternRef.current];
+      // Check if chain is enabled
+      let activePattern: "A" | "B" | "C" | "D";
+      if (chainEnabledRef.current) {
+        // If chain is on, pick from patternChainRef
+        const measureIndex = measureCounterRef.current;
+        activePattern = patternChainRef.current[measureIndex];
+      } else {
+        // Otherwise use the single selected pattern
+        activePattern = currentPatternRef.current;
+      }
+
+      const patternGrid = patternsRef.current[activePattern];
       patternGrid.forEach((row, channelIndex) => {
         const padVelocity = row[step];
         if (padVelocity > 0) {
@@ -194,14 +243,25 @@ function App() {
       Tone.getDraw().schedule(() => {
         if (isPlayingRef.current) {
           setCurrentStep(step);
+          setChainMeasure(measureCounterRef.current);
         }
       }, scheduledTime);
 
       stepCounterRef.current = (step + 1) % NUM_STEPS;
+
+      if (step === NUM_STEPS - 1) {
+        // End of measure, move to next chain measure if chain is on
+        if (chainEnabledRef.current) {
+          measureCounterRef.current =
+            (measureCounterRef.current + 1) % chainLengthRef.current;
+        } else {
+          measureCounterRef.current = 0;
+        }
+      }
     }, "16n");
 
     loopRef.current.start(0);
-  }, []); // No deps => create once
+  }, []); // no deps, we only create this loop once
 
   // ──────────────────────────────────────────────────────────────
   // Transport
@@ -228,6 +288,8 @@ function App() {
     setIsPlaying(false);
     setCurrentStep(null);
     stepCounterRef.current = 0;
+    measureCounterRef.current = 0;
+    setChainMeasure(0);
   };
 
   const handleTogglePlay = async () => {
@@ -395,7 +457,7 @@ function App() {
 
         <div className="flex h-full justify-center">
           <div className="space-y-6 p-4">
-            <h1 className="text-center font-[Chicle] text-4xl font-bold text-foreground drop-shadow-lg">
+            <h1 className="text-foreground text-center font-[Chicle] text-4xl font-bold drop-shadow-lg">
               House is a Feeling
             </h1>
 
@@ -477,12 +539,18 @@ function App() {
             </div>
 
             {/* Pattern controls */}
-            <div className="flex justify-center items-center gap-4">
+            <div className="flex items-center justify-center gap-4">
               <div className="flex items-center justify-center gap-3">
-                <Button variant="outline" onClick={() => shiftGrid(currentPattern, "left")}>
+                <Button
+                  variant="outline"
+                  onClick={() => shiftGrid(currentPattern, "left")}
+                >
                   Shift Left
                 </Button>
-                <Button variant="outline" onClick={() => shiftGrid(currentPattern, "right")}>
+                <Button
+                  variant="outline"
+                  onClick={() => shiftGrid(currentPattern, "right")}
+                >
                   Shift Right
                 </Button>
               </div>
@@ -513,8 +581,98 @@ function App() {
                 </Button>
               </div>
             </div>
+
+            {/* ──────────────────────────────────────────────────────────────
+                Pattern Chain UI (with refs)
+               ────────────────────────────────────────────────────────────── */}
+            <div className="mt-4 space-y-3 rounded-md border p-3">
+              <div className="flex items-center space-x-2">
+                <Label className="text-sm font-medium">Enable Chain:</Label>
+                <Switch
+                  checked={chainEnabled}
+                  onCheckedChange={(val) => {
+                    setChainEnabled(val);
+                    measureCounterRef.current = 0;
+                    setChainMeasure(0);
+                  }}
+                />
+                {chainEnabled && (
+                  <div className="ml-6 flex items-center space-x-2">
+                    <Label>Chain Length:</Label>
+                    <Select
+                      value={chainLength.toString()}
+                      onValueChange={(val) => {
+                        const newLen = parseInt(val, 10);
+                        setChainLength(newLen);
+                        measureCounterRef.current = 0;
+                        setChainMeasure(0);
+                      }}
+                    >
+                      <SelectTrigger className="w-[65px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[4, 5, 6, 7, 8].map((len) => (
+                          <SelectItem key={len} value={len.toString()}>
+                            {len}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+
+              {chainEnabled && (
+                <div className="flex flex-col space-y-2">
+                  <Label className="text-sm">Pattern Chain:</Label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {Array.from({ length: chainLength }).map((_, i) => {
+                      const isActiveMeasure = chainMeasure === i;
+                      return (
+                        <div
+                          key={i}
+                          className={`flex items-center space-x-2 rounded p-2 ${
+                            isActiveMeasure
+                              ? "bg-blue-100 dark:bg-blue-900"
+                              : "bg-muted"
+                          }`}
+                        >
+                          <Label className="w-6 text-center">{i + 1}</Label>
+                          <Select
+                            value={patternChain[i]}
+                            onValueChange={(val) => {
+                              setPatternChain((prev) => {
+                                const next = [...prev];
+                                next[i] = val as "A" | "B" | "C" | "D";
+                                return next;
+                              });
+                            }}
+                          >
+                            <SelectTrigger className="w-[70px] text-center">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(["A", "B", "C", "D"] as const).map((p) => (
+                                <SelectItem key={p} value={p}>
+                                  {p}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+            {/* ──────────────────────────────────────────────────────────────
+                END: Pattern Chain UI
+               ────────────────────────────────────────────────────────────── */}
           </div>
 
+          {/* ChannelFx Dialog */}
           <ChannelFxDialog
             channel={activeChannelFxDialog}
             channelFx={
@@ -524,6 +682,7 @@ function App() {
             onClose={() => setActiveChannelFxDialog(null)}
           />
 
+          {/* GlobalFx Dialog */}
           <GlobalFxDialog
             isOpen={isGlobalReverbDialogOpen}
             globalReverbSettings={globalReverbSettings}
