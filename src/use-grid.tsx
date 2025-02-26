@@ -1,77 +1,72 @@
 import { useState, useRef, useEffect } from "react";
-import { createDefaultGrid } from "@/utils";
 import type { GridState, PadVelocity } from "./types";
-import type { LoopLength } from "./constants";
 
-const MAX_STEPS = 64;
-
-export function useGrid(numChannels: number) {
-  const [grid, setGrid] = useState<GridState>(
-    createDefaultGrid(numChannels, MAX_STEPS),
+function createEmptyGrid(numChannels: number, numSteps: number): GridState {
+  return Array.from({ length: numChannels }).map(() =>
+    Array.from({ length: numSteps }).map(() => 0),
   );
+}
 
-  const gridRef = useRef(grid);
+/**
+ * This hook manages four separate patterns (A, B, C, D), each 16 steps,
+ * plus functions to toggle cells, shift, duplicate, etc.
+ */
+export function useGrid(numChannels: number) {
+  const [patterns, setPatterns] = useState<{
+    A: GridState;
+    B: GridState;
+    C: GridState;
+    D: GridState;
+  }>({
+    A: createEmptyGrid(numChannels, 16),
+    B: createEmptyGrid(numChannels, 16),
+    C: createEmptyGrid(numChannels, 16),
+    D: createEmptyGrid(numChannels, 16),
+  });
+
+  const patternsRef = useRef(patterns);
   useEffect(() => {
-    gridRef.current = grid;
-  }, [grid]);
+    patternsRef.current = patterns;
+  }, [patterns]);
 
-  const toggleCell = (row: number, col: number, newValue: PadVelocity) => {
-    setGrid((prev) =>
-      prev.map((r, rowIndex) =>
-        rowIndex === row
-          ? r.map((cell, colIndex) => (colIndex === col ? newValue : cell))
-          : r,
-      ),
-    );
+  const toggleCell = (
+    pattern: "A" | "B" | "C" | "D",
+    row: number,
+    col: number,
+    newValue: PadVelocity,
+  ) => {
+    setPatterns((prev) => {
+      const next = structuredClone(prev);
+      next[pattern][row][col] = newValue;
+      return next;
+    });
   };
 
-  // Duplicate pattern logic based on the current loop length.
-  // Note: This function only manipulates the grid.
-  const duplicateGrid = (currentLoopLength: LoopLength) => {
-    if (currentLoopLength === "1m") {
-      // Duplicate first 16 steps into steps 16-31
-      setGrid((prev) =>
-        prev.map((row) => {
-          const newRow = [...row];
-          for (let i = 0; i < 16; i++) {
-            newRow[i + 16] = newRow[i];
-          }
-          return newRow;
-        }),
-      );
-    } else if (currentLoopLength === "2m") {
-      // Duplicate first 32 steps into steps 32-63
-      setGrid((prev) =>
-        prev.map((row) => {
-          const newRow = [...row];
-          for (let i = 0; i < 32; i++) {
-            newRow[i + 32] = newRow[i];
-          }
-          return newRow;
-        }),
-      );
-    }
-  };
+  const shiftGrid = (
+    pattern: "A" | "B" | "C" | "D",
+    direction: "left" | "right",
+  ) => {
+    setPatterns((prev) => {
+      const next = { ...prev };
+      const clonedPattern = next[pattern].map((row) => [...row]);
 
-  const shiftGrid = (direction: "left" | "right", numVisibleSteps: number) => {
-    setGrid((prevGrid) =>
-      prevGrid.map((row) => {
-        const visible = row.slice(0, numVisibleSteps);
-        const hidden = row.slice(numVisibleSteps);
-
-        let shiftedVisible: typeof visible;
+      for (let i = 0; i < clonedPattern.length; i++) {
         if (direction === "left") {
-          shiftedVisible = [...visible.slice(1), visible[0]];
+          clonedPattern[i].push(clonedPattern[i].shift()!);
         } else {
-          shiftedVisible = [
-            visible[visible.length - 1],
-            ...visible.slice(0, visible.length - 1),
-          ];
+          clonedPattern[i].unshift(clonedPattern[i].pop()!);
         }
-        return shiftedVisible.concat(hidden);
-      }),
-    );
+      }
+      next[pattern] = clonedPattern;
+      return next;
+    });
   };
 
-  return { grid, gridRef, toggleCell, duplicateGrid, setGrid, shiftGrid };
+  return {
+    patterns,
+    patternsRef,
+    setPatterns,
+    toggleCell,
+    shiftGrid,
+  };
 }

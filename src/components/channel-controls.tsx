@@ -17,7 +17,7 @@ export type ChannelControl = {
 
 type ChannelControlsProps = {
   channelControls: Record<string, ChannelControl>;
-  onChangeChannel: (note: string, partial: Partial<ChannelControl>) => void;
+  onChangeChannel: (channel: ChannelName, partial: Partial<ChannelControl>) => void;
   channelNames: ChannelNames;
   selectedSampleIndexes: Record<ChannelName, number>;
   onChangeChannelSample: (channel: ChannelName, sampleIdx: number) => void;

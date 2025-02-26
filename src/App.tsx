@@ -1,23 +1,16 @@
 import React, { useRef, useState, useEffect } from "react";
-import { Play, Octagon } from "lucide-react";
+import { Play, Octagon, Copy, ClipboardCheck } from "lucide-react";
+
 import { ThemeProvider } from "@/components/theme-provider";
 import * as Tone from "tone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-
+import { Toggle } from "@/components/ui/toggle";
 import audioEngine from "./audio-engine";
 import { Grid } from "@/components/grid";
 import { Ruler } from "@/components/ruler";
-import { useGrid } from "./use-grid";
 import { ChannelControls } from "@/components/channel-controls";
 import { ChannelFxDialog } from "@/components/channel-fx-dialog";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -28,16 +21,15 @@ import type {
   PadVelocity,
   ChannelFxState,
   GlobalReverbSettings,
+  GridState,
 } from "./types";
-import type { LoopLength } from "./constants";
+import { useGrid } from "./use-grid";
 
+// ─────────────────────────────────────────────────────────────────
+// Types & Constants
+// ─────────────────────────────────────────────────────────────────
 const NUM_CHANNELS = CHANNEL_NAMES.length;
-const GRID_RESOLUTION = "16n";
-const STEPS_MAP: Record<string, number> = {
-  "1m": 16,
-  "2m": 32,
-  "4m": 64,
-};
+const NUM_STEPS = 16;
 
 export type ChannelControlsType = {
   mute: boolean;
@@ -46,20 +38,21 @@ export type ChannelControlsType = {
   pan: number; // -1..1
 };
 
-const initialChannelControls: Record<string, ChannelControlsType> =
+const initialChannelControls: Record<ChannelName, ChannelControlsType> =
   Object.fromEntries(
-    CHANNEL_NAMES.map((note) => [
-      note,
+    CHANNEL_NAMES.map((channel) => [
+      channel,
       { mute: false, solo: false, volume: 1, pan: 0 },
     ]),
-  );
+  ) as Record<ChannelName, ChannelControlsType>;
 
-const initialChannelFx: Record<string, ChannelFxState> = Object.fromEntries(
-  CHANNEL_NAMES.map((note) => [
-    note,
-    { time: "8n", wet: 0.0, feedback: 0.25, reverbSend: 0 },
-  ]),
-);
+const initialChannelFx: Record<ChannelName, ChannelFxState> =
+  Object.fromEntries(
+    CHANNEL_NAMES.map((channel) => [
+      channel,
+      { time: "8n", wet: 0.0, feedback: 0.25, reverbSend: 0 },
+    ]),
+  ) as Record<ChannelName, ChannelFxState>;
 
 const initialGlobalReverbSettings: GlobalReverbSettings = {
   decay: 2.1,
@@ -67,12 +60,14 @@ const initialGlobalReverbSettings: GlobalReverbSettings = {
   wet: 1,
 };
 
-const initialSelectedSampleIndexes = Object.fromEntries(
-  CHANNEL_NAMES.map((channel) => [channel, 0]),
-) as Record<ChannelName, number>;
+const initialSelectedSampleIndexes: Record<ChannelName, number> =
+  Object.fromEntries(CHANNEL_NAMES.map((channel) => [channel, 0])) as Record<
+    ChannelName,
+    number
+  >;
 
-function getNormalizedVelocity(padVelocity: PadVelocity) {
-  switch (padVelocity) {
+function getNormalizedVelocity(velocity: PadVelocity) {
+  switch (velocity) {
     case 3:
       return 1.0;
     case 2:
@@ -89,10 +84,15 @@ function App() {
   // State
   // ──────────────────────────────────────────────────────────────
   const [engineReady, setEngineReady] = useState(false);
+
   const [bpm, setBpm] = useState(120);
-  const [loopLength, setLoopLength] = useState<LoopLength>("1m");
   const [currentStep, setCurrentStep] = useState<number | null>(null);
   const [swing, setSwing] = useState(0);
+
+  const [currentPattern, setCurrentPattern] = useState<"A" | "B" | "C" | "D">(
+    "A",
+  );
+  const [copiedPattern, setCopiedPattern] = useState<GridState | null>(null);
 
   const [channelControls, setChannelControls] = useState(
     initialChannelControls,
@@ -111,26 +111,31 @@ function App() {
   const [isGlobalReverbDialogOpen, setIsGlobalReverbDialogOpen] =
     useState(false);
 
-  // Sequencer grid
-  const { grid, gridRef, toggleCell, duplicateGrid, shiftGrid } =
+  const { patterns, patternsRef, setPatterns, toggleCell, shiftGrid } =
     useGrid(NUM_CHANNELS);
+
+  // Playback references
   const loopRef = useRef<Tone.Loop | null>(null);
   const stepCounterRef = useRef(0);
-  const numVisibleSteps = STEPS_MAP[loopLength];
+  const isPlayingRef = useRef(false);
 
   // We store swing in a ref so the loop callback can see it
   const swingRef = useRef(swing);
+  const currentPatternRef = useRef<"A" | "B" | "C" | "D">(currentPattern);
+
   useEffect(() => {
     swingRef.current = swing;
   }, [swing]);
 
-  // Track if currently playing in both a ref and a state variable
-  const [isPlaying, setIsPlaying] = useState(false);
-  const isPlayingRef = useRef(false);
+  useEffect(() => {
+    currentPatternRef.current = currentPattern;
+  }, [currentPattern]);
 
-  // --------------------------------------------------------------------------
-  // Auto-initialize the audio engine on first user interaction
-  // --------------------------------------------------------------------------
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  // ──────────────────────────────────────────────────────────────
+  // Auto-initialize audio engine
+  // ──────────────────────────────────────────────────────────────
   useEffect(() => {
     const initAudioEngine = async () => {
       await audioEngine.init();
@@ -157,8 +162,13 @@ function App() {
   // ──────────────────────────────────────────────────────────────
   // Create the main loop
   // ──────────────────────────────────────────────────────────────
-  const createToneLoop = () => {
-    return new Tone.Loop((time) => {
+  useEffect(() => {
+    // If a loop exists, dispose it first
+    if (loopRef.current) {
+      loopRef.current.dispose();
+    }
+
+    loopRef.current = new Tone.Loop((time) => {
       const step = stepCounterRef.current;
       let scheduledTime = time;
 
@@ -168,7 +178,8 @@ function App() {
         scheduledTime = time + swingDelay;
       }
 
-      gridRef.current.forEach((row, channelIndex) => {
+      const patternGrid = patternsRef.current[currentPatternRef.current];
+      patternGrid.forEach((row, channelIndex) => {
         const padVelocity = row[step];
         if (padVelocity > 0) {
           const gain = getNormalizedVelocity(padVelocity);
@@ -186,21 +197,11 @@ function App() {
         }
       }, scheduledTime);
 
-      stepCounterRef.current = (step + 1) % numVisibleSteps;
-    }, GRID_RESOLUTION);
-  };
+      stepCounterRef.current = (step + 1) % NUM_STEPS;
+    }, "16n");
 
-  // Re-create the loop whenever loopLength changes
-  useEffect(() => {
-    audioEngine.setLoopLength(loopLength);
-    stepCounterRef.current = 0;
-
-    if (loopRef.current) {
-      loopRef.current.dispose();
-    }
-    loopRef.current = createToneLoop();
     loopRef.current.start(0);
-  }, [loopLength, numVisibleSteps]);
+  }, []); // No deps => create once
 
   // ──────────────────────────────────────────────────────────────
   // Transport
@@ -211,41 +212,20 @@ function App() {
     audioEngine.setBPM(newBpm);
   };
 
-  const handleLoopLengthChange = (length: LoopLength) => {
-    setLoopLength(length);
-  };
-
-  const handleDuplicatePattern = () => {
-    duplicateGrid(loopLength);
-    if (loopLength === "1m") {
-      setLoopLength("2m");
-    } else if (loopLength === "2m") {
-      setLoopLength("4m");
-    }
-  };
-
   const handleStart = async () => {
     if (Tone.getContext().state !== "running") {
       await Tone.getContext().resume();
     }
     isPlayingRef.current = true;
     setIsPlaying(true);
-
-    if (!loopRef.current) {
-      loopRef.current = createToneLoop();
-      loopRef.current.start(0);
-    }
     audioEngine.startTransport();
   };
 
   const handleStop = () => {
-    if (isPlayingRef.current === false) {
-      return;
-    }
+    if (!isPlayingRef.current) return;
     audioEngine.stopTransport();
     isPlayingRef.current = false;
     setIsPlaying(false);
-
     setCurrentStep(null);
     stepCounterRef.current = 0;
   };
@@ -258,12 +238,9 @@ function App() {
     }
   };
 
-  // ──────────────────────────────────────────────────────────────
-  // Spacebar listener to Start/Stop
-  // ──────────────────────────────────────────────────────────────
+  // Spacebar toggles play/stop
   useEffect(() => {
     const handleSpaceKey = (e: KeyboardEvent) => {
-      // prevent conflicts when typing in an input
       if (
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement
@@ -280,9 +257,7 @@ function App() {
       }
     };
     window.addEventListener("keydown", handleSpaceKey);
-    return () => {
-      window.removeEventListener("keydown", handleSpaceKey);
-    };
+    return () => window.removeEventListener("keydown", handleSpaceKey);
   }, []);
 
   // ──────────────────────────────────────────────────────────────
@@ -300,7 +275,7 @@ function App() {
   // Channel Controls
   // ──────────────────────────────────────────────────────────────
   function applyAllChannelControls(
-    controls: Record<string, ChannelControlsType>,
+    controls: Record<ChannelName, ChannelControlsType>,
   ) {
     if (!engineReady) return;
     const anySolo = Object.values(controls).some((ctrl) => ctrl.solo);
@@ -316,13 +291,12 @@ function App() {
   }
 
   const onChangeChannel = (
-    channel: string,
+    channel: ChannelName,
     partial: Partial<ChannelControlsType>,
   ) => {
     setChannelControls((prev) => {
       const next = { ...prev };
       next[channel] = { ...prev[channel], ...partial };
-
       applyAllChannelControls(next);
       return next;
     });
@@ -338,7 +312,7 @@ function App() {
   };
 
   // ──────────────────────────────────────────────────────────────
-  // Channel Effects (Delay, Reverb Send)
+  // Channel FX
   // ──────────────────────────────────────────────────────────────
   function applyAllChannelFx(effects: Record<ChannelName, ChannelFxState>) {
     if (!engineReady) return;
@@ -395,6 +369,21 @@ function App() {
   };
 
   // ──────────────────────────────────────────────────────────────
+  // Copy / Paste
+  // ──────────────────────────────────────────────────────────────
+  const handleCopy = () => {
+    setCopiedPattern(patterns[currentPattern]);
+  };
+
+  const handlePaste = () => {
+    if (!copiedPattern) return;
+    setPatterns((prev) => ({
+      ...prev,
+      [currentPattern]: copiedPattern.map((row) => [...row]),
+    }));
+  };
+
+  // ──────────────────────────────────────────────────────────────
   // Render
   // ──────────────────────────────────────────────────────────────
   return (
@@ -411,7 +400,7 @@ function App() {
             </h1>
 
             {/* Top Section: Transport and BPM */}
-            <div className="flex items-center space-x-4 pb-4">
+            <div className="flex flex-wrap items-center space-x-4 pb-4">
               <Label htmlFor="bpm">BPM:</Label>
               <Input
                 id="bpm"
@@ -470,11 +459,12 @@ function App() {
               />
 
               <div className="relative">
-                <Ruler currentStep={currentStep} numSteps={numVisibleSteps} />
+                <Ruler currentStep={currentStep} numSteps={NUM_STEPS} />
                 <Grid
-                  grid={grid}
-                  toggleCell={toggleCell}
-                  numVisibleSteps={numVisibleSteps}
+                  grid={patterns[currentPattern]}
+                  toggleCell={(row, col, newVal) =>
+                    toggleCell(currentPattern, row, col, newVal)
+                  }
                   currentStep={currentStep}
                 />
               </div>
@@ -486,32 +476,40 @@ function App() {
               />
             </div>
 
-            {/* Bottom: Loop length + Duplicate Pattern */}
-            <div className="flex items-center justify-center gap-3">
-              <Select
-                value={loopLength}
-                onValueChange={(val) =>
-                  handleLoopLengthChange(val as LoopLength)
-                }
-              >
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1m">1 Measure</SelectItem>
-                  <SelectItem value="2m">2 Measures</SelectItem>
-                  <SelectItem value="4m">4 Measures</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Button onClick={handleDuplicatePattern}>Duplicate</Button>
-
-              <div className="flex items-center gap-3">
-                <Button onClick={() => shiftGrid("left", numVisibleSteps)}>
+            {/* Pattern controls */}
+            <div className="flex justify-center items-center gap-4">
+              <div className="flex items-center justify-center gap-3">
+                <Button variant="outline" onClick={() => shiftGrid(currentPattern, "left")}>
                   Shift Left
                 </Button>
-                <Button onClick={() => shiftGrid("right", numVisibleSteps)}>
+                <Button variant="outline" onClick={() => shiftGrid(currentPattern, "right")}>
                   Shift Right
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                {(["A", "B", "C", "D"] as const).map((patternLabel) => (
+                  <Toggle
+                    key={patternLabel}
+                    pressed={currentPattern === patternLabel}
+                    onPressedChange={() => setCurrentPattern(patternLabel)}
+                  >
+                    {patternLabel}
+                  </Toggle>
+                ))}
+              </div>
+
+              <div className="ml-4 flex gap-2">
+                <Button variant="outline" onClick={handleCopy}>
+                  <Copy className="mr-2 h-4 w-4" />
+                  Copy
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={!copiedPattern}
+                  onClick={handlePaste}
+                >
+                  <ClipboardCheck className="mr-2 h-4 w-4" />
+                  Paste
                 </Button>
               </div>
             </div>
