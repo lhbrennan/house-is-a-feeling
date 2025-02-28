@@ -17,14 +17,17 @@ export type ChannelControl = {
 
 type ChannelControlsProps = {
   channelControls: Record<string, ChannelControl>;
-  onChangeChannel: (channel: ChannelName, partial: Partial<ChannelControl>) => void;
+  onChangeChannel: (
+    channel: ChannelName,
+    partial: Partial<ChannelControl>,
+  ) => void;
   channelNames: ChannelNames;
   selectedSampleIndexes: Record<ChannelName, number>;
   onChangeChannelSample: (channel: ChannelName, sampleIdx: number) => void;
   playNoteImmediately: (channel: ChannelName) => void;
 };
 
-export function ChannelControls({
+function ChannelControls({
   channelControls,
   onChangeChannel,
   channelNames,
@@ -136,14 +139,13 @@ function PanSlider({
         max={1}
         step={0.25}
       >
-        <RadixSlider.Track className="relative h-1.5 w-full rounded-full bg-muted">
-          <div
-            className="absolute h-full rounded-full bg-primary"
-            style={rangeStyle}
-          />
+        <RadixSlider.Track className="bg-primary/20 relative h-1.5 w-full grow overflow-hidden rounded-full">
+          <div className="bg-primary absolute h-full" style={rangeStyle} />
         </RadixSlider.Track>
-        <RadixSlider.Thumb className="block h-4 w-4 rounded-full border border-border bg-card shadow-sm focus:ring-1 focus:ring-ring focus:outline-none" />
+        <RadixSlider.Thumb className="border-primary/50 bg-background focus-visible:ring-ring block h-4 w-4 rounded-full border shadow transition-colors focus-visible:ring-1 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50" />
       </RadixSlider.Root>
     </div>
   );
 }
+
+export { ChannelControls, PanSlider };
