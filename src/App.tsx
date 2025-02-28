@@ -172,6 +172,14 @@ function App() {
   const measureCounterRef = useRef(0);
   const [chainMeasure, setChainMeasure] = useState(0);
 
+  const getDisplayedPattern = (): "A" | "B" | "C" | "D" => {
+    if (chainEnabled && isPlaying) {
+      return patternChain[chainMeasure];
+    }
+    return currentPattern;
+  };
+
+
   // ──────────────────────────────────────────────────────────────
   // Auto-initialize audio engine
   // ──────────────────────────────────────────────────────────────
@@ -287,6 +295,13 @@ function App() {
     isPlayingRef.current = false;
     setIsPlaying(false);
     setCurrentStep(null);
+
+    // When stopping with chain enabled, set the current pattern to match
+    // the pattern that was playing when stopped
+    if (chainEnabled) {
+      setCurrentPattern(patternChain[measureCounterRef.current]);
+    }
+
     stepCounterRef.current = 0;
     measureCounterRef.current = 0;
     setChainMeasure(0);
@@ -521,11 +536,16 @@ function App() {
               />
 
               <div className="relative">
-                <Ruler currentStep={currentStep} numSteps={NUM_STEPS} />
+                <Ruler
+                  currentStep={currentStep}
+                  numSteps={NUM_STEPS}
+                  chainEnabled={chainEnabled}
+                  chainMeasure={chainMeasure}
+                />
                 <Grid
-                  grid={patterns[currentPattern]}
+                  grid={patterns[getDisplayedPattern()]}
                   toggleCell={(row, col, newVal) =>
-                    toggleCell(currentPattern, row, col, newVal)
+                    toggleCell(getDisplayedPattern(), row, col, newVal)
                   }
                   currentStep={currentStep}
                 />
@@ -543,27 +563,41 @@ function App() {
               <div className="flex items-center justify-center gap-3">
                 <Button
                   variant="outline"
-                  onClick={() => shiftGrid(currentPattern, "left")}
+                  onClick={() => shiftGrid(getDisplayedPattern(), "left")}
                 >
                   Shift Left
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() => shiftGrid(currentPattern, "right")}
+                  onClick={() => shiftGrid(getDisplayedPattern(), "right")}
                 >
                   Shift Right
                 </Button>
               </div>
               <div className="flex gap-2">
-                {(["A", "B", "C", "D"] as const).map((patternLabel) => (
-                  <Toggle
-                    key={patternLabel}
-                    pressed={currentPattern === patternLabel}
-                    onPressedChange={() => setCurrentPattern(patternLabel)}
-                  >
-                    {patternLabel}
-                  </Toggle>
-                ))}
+                {(["A", "B", "C", "D"] as const).map((patternLabel) => {
+                  // When chain mode is active and playing, show the current chain pattern as selected
+                  // Otherwise show the manually selected pattern
+                  const isSelected =
+                    isPlaying && chainEnabled
+                      ? patternChain[chainMeasure] === patternLabel
+                      : currentPattern === patternLabel;
+
+                  return (
+                    <Toggle
+                      key={patternLabel}
+                      pressed={isSelected}
+                      onPressedChange={() => {
+                        // Only allow manual selection when not playing with chain enabled
+                        if (!(isPlaying && chainEnabled)) {
+                          setCurrentPattern(patternLabel);
+                        }
+                      }}
+                    >
+                      {patternLabel}
+                    </Toggle>
+                  );
+                })}
               </div>
 
               <div className="ml-4 flex gap-2">
