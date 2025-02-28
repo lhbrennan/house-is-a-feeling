@@ -626,92 +626,105 @@ function App() {
             </div>
 
             {/* ──────────────────────────────────────────────────────────────
-                Pattern Chain UI (with refs)
-               ────────────────────────────────────────────────────────────── */}
-            <div className="mt-4 space-y-3 rounded-md border p-3">
-              <div className="flex items-center space-x-2">
-                <Label className="text-sm font-medium">Enable Chain:</Label>
-                <Switch
-                  checked={chainEnabled}
-                  onCheckedChange={(val) => {
-                    setChainEnabled(val);
-                    measureCounterRef.current = 0;
-                    setChainMeasure(0);
-                  }}
-                />
-                {chainEnabled && (
-                  <>
-                    <div className="ml-6 flex items-center space-x-2">
-                      <Label>Chain Length:</Label>
-                      <Select
-                        value={chainLength.toString()}
-                        onValueChange={(val) => {
-                          const newLen = parseInt(val, 10);
-                          setChainLength(newLen);
-                          measureCounterRef.current = 0;
-                          setChainMeasure(0);
-                        }}
-                      >
-                        <SelectTrigger className="w-[65px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {[4, 5, 6, 7, 8].map((len) => (
-                            <SelectItem key={len} value={len.toString()}>
-                              {len}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+    Pattern Chain UI
+   ────────────────────────────────────────────────────────────── */}
+            <div className="relative mt-4">
+              {/* Base container */}
+              <div
+                className={`relative flex h-14 items-center overflow-hidden rounded-md border border-solid transition-all duration-300 ease-in-out ${chainEnabled ? "w-full" : "w-[150px]"} `}
+              >
+                {/* Chain toggle section */}
+                <div className="flex h-full w-[150px] shrink-0 items-center px-3">
+                  <Label className="mr-3 text-sm font-medium">Chain:</Label>
+                  <Switch
+                    checked={chainEnabled}
+                    onCheckedChange={(val) => {
+                      setChainEnabled(val);
+                      measureCounterRef.current = 0;
+                      setChainMeasure(0);
+                    }}
+                  />
+                </div>
 
-                    <div className="flex flex-col space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        {Array.from({ length: chainLength }).map((_, i) => {
-                          const isActiveMeasure = chainMeasure === i;
-                          return (
-                            <div
-                              key={i}
-                              className={`flex items-center space-x-2 rounded p-2 ${
-                                isActiveMeasure
-                                  ? "bg-blue-100 dark:bg-blue-900"
-                                  : "bg-muted"
-                              }`}
-                            >
-                              <Label className="w-6 text-center">{i + 1}</Label>
-                              <Select
-                                value={patternChain[i]}
-                                onValueChange={(val) => {
-                                  setPatternChain((prev) => {
-                                    const next = [...prev];
-                                    next[i] = val as "A" | "B" | "C" | "D";
-                                    return next;
-                                  });
-                                }}
-                              >
-                                <SelectTrigger className="w-[70px] text-center">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {(["A", "B", "C", "D"] as const).map((p) => (
-                                    <SelectItem key={p} value={p}>
-                                      {p}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </>
-                )}
+                {/* Divider line with animation */}
+                <div
+                  className={`h-14 self-stretch border-l transition-opacity duration-300 ease-in-out ${chainEnabled ? "opacity-100" : "opacity-0"} `}
+                ></div>
+
+                {/* Chain options that slide into view */}
+                <div
+                  className={`flex h-full flex-nowrap items-center gap-4 pr-3 pl-4 transition-all duration-300 ease-in-out ${chainEnabled ? "max-w-[2000px] opacity-100" : "max-w-0 overflow-hidden opacity-0"} `}
+                >
+                  <div className="flex shrink-0 items-center space-x-2">
+                    <Label className="text-sm whitespace-nowrap">Length:</Label>
+                    <Select
+                      value={chainLength.toString()}
+                      onValueChange={(val) => {
+                        const newLen = parseInt(val, 10);
+                        setChainLength(newLen);
+                        measureCounterRef.current = 0;
+                        setChainMeasure(0);
+                      }}
+                    >
+                      <SelectTrigger className="h-8 w-[60px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[4, 5, 6, 7, 8].map((len) => (
+                          <SelectItem key={len} value={len.toString()}>
+                            {len}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="scrollbar-thin flex flex-nowrap items-center gap-2 overflow-x-auto">
+                    {Array.from({ length: chainLength }).map((_, i) => {
+                      const isActiveMeasure = isPlaying && chainMeasure === i;
+                      return (
+                        <div
+                          key={i}
+                          className={`flex flex-shrink-0 items-center space-x-1 rounded p-1 ${
+                            isActiveMeasure
+                              ? "bg-blue-100 dark:bg-blue-900"
+                              : "bg-muted"
+                          }`}
+                        >
+                          <Label className="w-4 text-center text-xs leading-none">
+                            {i + 1}
+                          </Label>
+                          <Select
+                            value={patternChain[i]}
+                            onValueChange={(val) => {
+                              setPatternChain((prev) => {
+                                const next = [...prev];
+                                next[i] = val as "A" | "B" | "C" | "D";
+                                return next;
+                              });
+                            }}
+                          >
+                            <SelectTrigger className="h-7 w-[55px] px-2 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(["A", "B", "C", "D"] as const).map((p) => (
+                                <SelectItem key={p} value={p}>
+                                  {p}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
             {/* ──────────────────────────────────────────────────────────────
-                END: Pattern Chain UI
-               ────────────────────────────────────────────────────────────── */}
+    END: Final Pattern Chain UI
+   ────────────────────────────────────────────────────────────── */}
           </div>
 
           {/* ChannelFx Dialog */}
