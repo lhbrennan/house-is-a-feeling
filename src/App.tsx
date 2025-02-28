@@ -179,7 +179,6 @@ function App() {
     return currentPattern;
   };
 
-
   // ──────────────────────────────────────────────────────────────
   // Auto-initialize audio engine
   // ──────────────────────────────────────────────────────────────
@@ -291,17 +290,27 @@ function App() {
 
   const handleStop = () => {
     if (!isPlayingRef.current) return;
+
+    // When stopping with chain enabled, set the current pattern to match
+    // the pattern that was playing when stopped
+    if (chainEnabledRef.current) {
+      // Get the current pattern from the chain
+      const currentMeasure = measureCounterRef.current;
+      const patternAtStop = patternChainRef.current[currentMeasure];
+      console.log(
+        "Stopping on measure",
+        currentMeasure,
+        "with pattern",
+        patternAtStop,
+      );
+      setCurrentPattern(patternAtStop);
+    }
+
+    // Now stop the transport and reset playback state
     audioEngine.stopTransport();
     isPlayingRef.current = false;
     setIsPlaying(false);
     setCurrentStep(null);
-
-    // When stopping with chain enabled, set the current pattern to match
-    // the pattern that was playing when stopped
-    if (chainEnabled) {
-      setCurrentPattern(patternChain[measureCounterRef.current]);
-    }
-
     stepCounterRef.current = 0;
     measureCounterRef.current = 0;
     setChainMeasure(0);
@@ -631,75 +640,74 @@ function App() {
                   }}
                 />
                 {chainEnabled && (
-                  <div className="ml-6 flex items-center space-x-2">
-                    <Label>Chain Length:</Label>
-                    <Select
-                      value={chainLength.toString()}
-                      onValueChange={(val) => {
-                        const newLen = parseInt(val, 10);
-                        setChainLength(newLen);
-                        measureCounterRef.current = 0;
-                        setChainMeasure(0);
-                      }}
-                    >
-                      <SelectTrigger className="w-[65px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[4, 5, 6, 7, 8].map((len) => (
-                          <SelectItem key={len} value={len.toString()}>
-                            {len}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <>
+                    <div className="ml-6 flex items-center space-x-2">
+                      <Label>Chain Length:</Label>
+                      <Select
+                        value={chainLength.toString()}
+                        onValueChange={(val) => {
+                          const newLen = parseInt(val, 10);
+                          setChainLength(newLen);
+                          measureCounterRef.current = 0;
+                          setChainMeasure(0);
+                        }}
+                      >
+                        <SelectTrigger className="w-[65px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[4, 5, 6, 7, 8].map((len) => (
+                            <SelectItem key={len} value={len.toString()}>
+                              {len}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex flex-col space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {Array.from({ length: chainLength }).map((_, i) => {
+                          const isActiveMeasure = chainMeasure === i;
+                          return (
+                            <div
+                              key={i}
+                              className={`flex items-center space-x-2 rounded p-2 ${
+                                isActiveMeasure
+                                  ? "bg-blue-100 dark:bg-blue-900"
+                                  : "bg-muted"
+                              }`}
+                            >
+                              <Label className="w-6 text-center">{i + 1}</Label>
+                              <Select
+                                value={patternChain[i]}
+                                onValueChange={(val) => {
+                                  setPatternChain((prev) => {
+                                    const next = [...prev];
+                                    next[i] = val as "A" | "B" | "C" | "D";
+                                    return next;
+                                  });
+                                }}
+                              >
+                                <SelectTrigger className="w-[70px] text-center">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {(["A", "B", "C", "D"] as const).map((p) => (
+                                    <SelectItem key={p} value={p}>
+                                      {p}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
-
-              {chainEnabled && (
-                <div className="flex flex-col space-y-2">
-                  <Label className="text-sm">Pattern Chain:</Label>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {Array.from({ length: chainLength }).map((_, i) => {
-                      const isActiveMeasure = chainMeasure === i;
-                      return (
-                        <div
-                          key={i}
-                          className={`flex items-center space-x-2 rounded p-2 ${
-                            isActiveMeasure
-                              ? "bg-blue-100 dark:bg-blue-900"
-                              : "bg-muted"
-                          }`}
-                        >
-                          <Label className="w-6 text-center">{i + 1}</Label>
-                          <Select
-                            value={patternChain[i]}
-                            onValueChange={(val) => {
-                              setPatternChain((prev) => {
-                                const next = [...prev];
-                                next[i] = val as "A" | "B" | "C" | "D";
-                                return next;
-                              });
-                            }}
-                          >
-                            <SelectTrigger className="w-[70px] text-center">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {(["A", "B", "C", "D"] as const).map((p) => (
-                                <SelectItem key={p} value={p}>
-                                  {p}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
             {/* ──────────────────────────────────────────────────────────────
                 END: Pattern Chain UI
