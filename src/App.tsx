@@ -30,6 +30,7 @@ import type {
   PadVelocity,
   ChannelFxState,
   GlobalReverbSettings,
+  BusCompressorSettings,
   GridState,
 } from "./types";
 import { useGrid } from "./use-grid";
@@ -67,6 +68,17 @@ const initialGlobalReverbSettings: GlobalReverbSettings = {
   decay: 2.1,
   preDelay: 0.05,
   wet: 1,
+};
+
+const initialBusCompressorSettings: BusCompressorSettings = {
+  enabled: false,
+  threshold: -24,
+  ratio: 4,
+  attack: 0.005,
+  release: 0.1,
+  knee: 10,
+  makeUpGain: 0,
+  mix: 0,
 };
 
 const initialSelectedSampleIndexes: Record<ChannelName, number> =
@@ -110,6 +122,9 @@ function App() {
   const [channelFx, setChannelFx] = useState(initialChannelFx);
   const [globalReverbSettings, setGlobalReverbSettings] = useState(
     initialGlobalReverbSettings,
+  );
+  const [busCompressorSettings, setBusCompressorSettings] = useState(
+    initialBusCompressorSettings,
   );
   const [selectedSampleIndexes, setSelectedSampleIndexes] = useState(
     initialSelectedSampleIndexes,
@@ -354,6 +369,7 @@ function App() {
       applyAllChannelControls(channelControls);
       applyAllChannelFx(channelFx);
       applyGlobalReverbSettings(globalReverbSettings);
+      applyBusCompressorSettings(busCompressorSettings);
     }
   }, [engineReady]);
 
@@ -450,6 +466,61 @@ function App() {
         audioEngine.setGlobalReverbPreDelay(next.preDelay);
         audioEngine.setGlobalReverbWet(next.wet);
       }
+      return next;
+    });
+  };
+
+  // ──────────────────────────────────────────────────────────────
+  // Bus Compressor
+  // ──────────────────────────────────────────────────────────────
+  const applyBusCompressorSettings = (settings: BusCompressorSettings) => {
+    if (!engineReady) return;
+    audioEngine.setBusCompressorEnabled(settings.enabled);
+    audioEngine.setBusCompressorThreshold(settings.threshold);
+    audioEngine.setBusCompressorRatio(settings.ratio);
+    audioEngine.setBusCompressorAttack(settings.attack);
+    audioEngine.setBusCompressorRelease(settings.release);
+    audioEngine.setBusCompressorKnee(settings.knee);
+    audioEngine.setBusCompressorMakeUpGain(settings.makeUpGain);
+    audioEngine.setBusCompressorMix(settings.mix);
+  };
+
+  const handleBusCompressorChange = (
+    field: keyof BusCompressorSettings,
+    value: number | boolean,
+  ) => {
+    setBusCompressorSettings((prev) => {
+      const next = { ...prev, [field]: value };
+
+      if (engineReady) {
+        switch (field) {
+          case "enabled":
+            audioEngine.setBusCompressorEnabled(value as boolean);
+            break;
+          case "threshold":
+            audioEngine.setBusCompressorThreshold(value as number);
+            break;
+          case "ratio":
+            audioEngine.setBusCompressorRatio(value as number);
+            break;
+          case "attack":
+            audioEngine.setBusCompressorAttack(value as number);
+            break;
+          case "release":
+            audioEngine.setBusCompressorRelease(value as number);
+            break;
+          case "knee":
+            audioEngine.setBusCompressorKnee(value as number);
+            break;
+          case "makeUpGain":
+            audioEngine.setBusCompressorMakeUpGain(value as number);
+            break;
+          case "mix":
+            audioEngine.setBusCompressorMix(value as number);
+            break;
+        }
+      }
+
       return next;
     });
   };
@@ -741,7 +812,9 @@ function App() {
           <GlobalFxDialog
             isOpen={isGlobalReverbDialogOpen}
             globalReverbSettings={globalReverbSettings}
+            busCompressorSettings={busCompressorSettings}
             handleGlobalReverbChange={handleGlobalReverbChange}
+            handleBusCompressorChange={handleBusCompressorChange}
             setOpen={setIsGlobalReverbDialogOpen}
           />
         </div>

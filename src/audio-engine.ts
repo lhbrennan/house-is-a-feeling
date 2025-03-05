@@ -14,6 +14,12 @@ type Channel = {
 const channels: Partial<Record<ChannelName, Channel>> = {};
 
 let globalReverb: Tone.Reverb;
+let busCompressor: Tone.Compressor;
+let compressorMakeUpGain: Tone.Gain;
+let compressorWetGain: Tone.Gain;
+let compressorDryGain: Tone.Gain;
+let compressorBypass: Tone.Gain;
+let preEffectsBus: Tone.Gain;
 
 const getSamplePath = (sample: string) => `/samples/${sample}.wav`;
 
@@ -24,6 +30,8 @@ const initialSamplePaths = Object.fromEntries(
   ]),
 );
 
+let storedCompressorMix = 0.5;
+
 const audioEngine = {
   // --------------------------------------------------------------------------
   // Initialize the audio engine
@@ -32,7 +40,37 @@ const audioEngine = {
     if (isInitialized) return;
     await Tone.start();
 
-    globalReverb = new Tone.Reverb().toDestination();
+    preEffectsBus = new Tone.Gain(1);
+
+    busCompressor = new Tone.Compressor({
+      threshold: -24,
+      ratio: 4,
+      attack: 0.005,
+      release: 0.1,
+      knee: 10,
+    });
+    compressorMakeUpGain = new Tone.Gain(1);
+    compressorWetGain = new Tone.Gain(0);
+    compressorDryGain = new Tone.Gain(1);
+    compressorBypass = new Tone.Gain(1);
+
+    // Set up routing with parallel paths for dry/wet mixing:
+
+    // Path 1 (Dry): mainBus -> compressorDryGain -> compressorBypass -> destination
+    preEffectsBus.connect(compressorDryGain);
+    compressorDryGain.connect(compressorBypass);
+
+    // Path 2 (Wet): mainBus -> busCompressor -> compressorMakeUpGain -> compressorWetGain -> compressorBypass -> destination
+    preEffectsBus.connect(busCompressor);
+    busCompressor.connect(compressorMakeUpGain);
+    compressorMakeUpGain.connect(compressorWetGain);
+    compressorWetGain.connect(compressorBypass);
+
+    // Final output
+    compressorBypass.toDestination();
+
+    globalReverb = new Tone.Reverb();
+    globalReverb.connect(preEffectsBus);
 
     // For each channel, use the first sample in the array as the default.
     const players = new Tone.Players(initialSamplePaths);
@@ -45,7 +83,8 @@ const audioEngine = {
       const feedbackDelay = new Tone.FeedbackDelay();
       const reverbSend = new Tone.Gain(0);
 
-      player.chain(volume, feedbackDelay, panner, Tone.getDestination());
+      player.chain(volume, feedbackDelay, panner, preEffectsBus);
+
       panner.connect(reverbSend);
       reverbSend.connect(globalReverb);
 
@@ -207,6 +246,72 @@ const audioEngine = {
   },
 
   // --------------------------------------------------------------------------
+  // Bus Compressor parameter handlers
+  // --------------------------------------------------------------------------
+  setBusCompressorEnabled(enabled: boolean) {
+    if (!isInitialized) return;
+
+    if (!enabled) {
+      // When disabled, set wet to 0 and dry to 1
+      compressorWetGain.gain.value = 0;
+      compressorDryGain.gain.value = 1;
+    } else {
+      // When enabled, restore the previous mix setting
+      compressorWetGain.gain.value = storedCompressorMix;
+      compressorDryGain.gain.value = 1 - storedCompressorMix;
+    }
+  },
+
+  setBusCompressorThreshold(value: number) {
+    if (busCompressor) {
+      busCompressor.threshold.value = value;
+    }
+  },
+
+  setBusCompressorRatio(value: number) {
+    if (busCompressor) {
+      busCompressor.ratio.value = value;
+    }
+  },
+
+  setBusCompressorAttack(value: number) {
+    if (busCompressor) {
+      busCompressor.attack.value = value;
+    }
+  },
+
+  setBusCompressorRelease(value: number) {
+    if (busCompressor) {
+      busCompressor.release.value = value;
+    }
+  },
+
+  setBusCompressorKnee(value: number) {
+    if (busCompressor) {
+      busCompressor.knee.value = value;
+    }
+  },
+
+  setBusCompressorMakeUpGain(gain: number) {
+    if (!isInitialized) return;
+
+    // Convert gain in dB to linear scale
+    const linearGain = Tone.dbToGain(gain);
+    compressorMakeUpGain.gain.value = linearGain;
+  },
+
+  setBusCompressorMix(mix: number) {
+    if (!isInitialized) return;
+
+    // Store the mix value for later use
+    storedCompressorMix = mix;
+
+    // Set the wet/dry balance
+    compressorWetGain.gain.value = mix;
+    compressorDryGain.gain.value = 1 - mix;
+  },
+
+  // --------------------------------------------------------------------------
   // Disposal
   // --------------------------------------------------------------------------
   dispose() {
@@ -222,6 +327,24 @@ const audioEngine = {
     });
     if (globalReverb) {
       globalReverb.dispose();
+    }
+    if (busCompressor) {
+      busCompressor.dispose();
+    }
+    if (compressorMakeUpGain) {
+      compressorMakeUpGain.dispose();
+    }
+    if (compressorWetGain) {
+      compressorWetGain.dispose();
+    }
+    if (compressorDryGain) {
+      compressorDryGain.dispose();
+    }
+    if (compressorBypass) {
+      compressorBypass.dispose();
+    }
+    if (preEffectsBus) {
+      preEffectsBus.dispose();
     }
     isInitialized = false;
   },
