@@ -4,7 +4,15 @@ import { Grid as BaseGrid } from "../grid";
 import { useGrid } from "@/use-grid";
 
 export const Grid: Story = () => {
-  const { grid, toggleCell } = useGrid(5);
+  const { patterns, toggleCell } = useGrid(5);
 
-  return <BaseGrid toggleCell={toggleCell} grid={grid} />;
+  return (
+    <BaseGrid
+      toggleCell={(row, col, newVal) =>
+        toggleCell('A', row, col, newVal)
+      }
+      grid={patterns.A}
+      currentStep={0}
+    />
+  );
 };

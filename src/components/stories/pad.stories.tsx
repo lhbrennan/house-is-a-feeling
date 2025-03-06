@@ -7,5 +7,5 @@ import type { PadVelocity } from "@/types";
 export const Pad: Story = () => {
   const [padVelocity, setPadVelocity] = React.useState<PadVelocity>(3);
 
-  return <BasePad state={padVelocity} onClick={setPadVelocity} />;
+  return <BasePad state={padVelocity} onClick={setPadVelocity} color="cyan" />;
 };
