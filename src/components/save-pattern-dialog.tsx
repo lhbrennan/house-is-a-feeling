@@ -17,7 +17,6 @@ type SavePatternDialogProps = {
   onClose: () => void;
   onSave: (name: string) => void;
   initialName: string;
-  currentPatternId: string | null;
 };
 
 export function SavePatternDialog({
@@ -25,7 +24,6 @@ export function SavePatternDialog({
   onClose,
   onSave,
   initialName = "",
-  currentPatternId,
 }: SavePatternDialogProps) {
   const [patternName, setPatternName] = useState(initialName);
   const [error, setError] = useState("");
@@ -40,7 +38,7 @@ export function SavePatternDialog({
       const names = patterns.map((p) => p.name.toLowerCase());
       setExistingNames(names);
     }
-  }, [isOpen, initialName, currentPatternId]);
+  }, [isOpen, initialName]);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPatternName(e.target.value);
