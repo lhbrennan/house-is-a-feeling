@@ -4,16 +4,7 @@ import { Copy, ClipboardCheck, Save, Folder, FilePlus2 } from "lucide-react";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Toggle } from "@/components/ui/toggle";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Grid } from "@/components/grid";
 import { Ruler } from "@/components/ruler";
 import { ChannelControls } from "@/components/channel-controls";
@@ -35,10 +26,12 @@ import type {
   GlobalReverbSettings,
   BusCompressorSettings,
   GridState,
+  PatternId,
 } from "./types";
 import { useGrid } from "@/hooks/use-grid";
 import { TransportControls } from "./components/transport-controls";
 import { useAudioEngine } from "@/hooks/use-audio-engine";
+import { PatternChain } from "./components/pattern-chain";
 
 // ─────────────────────────────────────────────────────────────────
 // Types & Constants
@@ -117,9 +110,7 @@ function App() {
   const [currentStep, setCurrentStep] = useState<number | null>(null);
   const [swing, setSwing] = useState(0);
 
-  const [currentPattern, setCurrentPattern] = useState<"A" | "B" | "C" | "D">(
-    "A",
-  );
+  const [currentPattern, setCurrentPattern] = useState<PatternId>("A");
   const [copiedPattern, setCopiedPattern] = useState<GridState | null>(null);
 
   const [channelControls, setChannelControls] = useState(
@@ -160,7 +151,7 @@ function App() {
 
   // We store swing in a ref so the loop callback can see it
   const swingRef = useRef(swing);
-  const currentPatternRef = useRef<"A" | "B" | "C" | "D">(currentPattern);
+  const currentPatternRef = useRef<PatternId>(currentPattern);
   const originalSessionRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -190,9 +181,16 @@ function App() {
     chainLengthRef.current = chainLength;
   }, [chainLength]);
 
-  const [patternChain, setPatternChain] = useState<
-    Array<"A" | "B" | "C" | "D">
-  >(["A", "A", "B", "B", "A", "A", "A", "A"]);
+  const [patternChain, setPatternChain] = useState<Array<PatternId>>([
+    "A",
+    "A",
+    "B",
+    "B",
+    "A",
+    "A",
+    "A",
+    "A",
+  ]);
   const patternChainRef = useRef(patternChain);
   useEffect(() => {
     patternChainRef.current = patternChain;
@@ -216,7 +214,7 @@ function App() {
   const measureCounterRef = useRef(0);
   const [chainMeasure, setChainMeasure] = useState(0);
 
-  const getDisplayedPattern = (): "A" | "B" | "C" | "D" => {
+  const getDisplayedPattern = (): PatternId => {
     if (chainEnabled && isPlaying) {
       return patternChain[chainMeasure];
     }
@@ -242,7 +240,7 @@ function App() {
       }
 
       // Check if chain is enabled
-      let activePattern: "A" | "B" | "C" | "D";
+      let activePattern: PatternId;
       if (chainEnabledRef.current) {
         // If chain is on, pick from patternChainRef
         const measureIndex = measureCounterRef.current;
@@ -789,106 +787,18 @@ function App() {
               </Button>
             </div>
 
-            {/* ──────────────────────────────────────────────────────────────
-    Pattern Chain UI
-   ────────────────────────────────────────────────────────────── */}
-            <div className="relative mt-4">
-              {/* Base container */}
-              <div
-                className={`relative flex h-14 items-center overflow-hidden rounded-md border border-solid transition-all duration-300 ease-in-out ${chainEnabled ? "w-full" : "w-[150px]"} `}
-              >
-                {/* Chain toggle section */}
-                <div className="flex h-full w-[150px] shrink-0 items-center px-3">
-                  <Label className="mr-3 text-sm font-medium">Chain:</Label>
-                  <Switch
-                    checked={chainEnabled}
-                    onCheckedChange={(val) => {
-                      setChainEnabled(val);
-                      measureCounterRef.current = 0;
-                      setChainMeasure(0);
-                    }}
-                  />
-                </div>
-
-                {/* Divider line with animation */}
-                <div
-                  className={`h-14 self-stretch border-l transition-opacity duration-300 ease-in-out ${chainEnabled ? "opacity-100" : "opacity-0"} `}
-                ></div>
-
-                {/* Chain options that slide into view */}
-                <div
-                  className={`flex h-full flex-nowrap items-center gap-4 pr-3 pl-4 transition-all duration-300 ease-in-out ${chainEnabled ? "max-w-[2000px] opacity-100" : "max-w-0 overflow-hidden opacity-0"} `}
-                >
-                  <div className="flex shrink-0 items-center space-x-2">
-                    <Label className="text-sm whitespace-nowrap">Length:</Label>
-                    <Select
-                      value={chainLength.toString()}
-                      onValueChange={(val) => {
-                        const newLen = parseInt(val, 10);
-                        setChainLength(newLen);
-                        measureCounterRef.current = 0;
-                        setChainMeasure(0);
-                      }}
-                    >
-                      <SelectTrigger className="h-8 w-[60px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[4, 5, 6, 7, 8].map((len) => (
-                          <SelectItem key={len} value={len.toString()}>
-                            {len}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="scrollbar-thin flex flex-nowrap items-center gap-2 overflow-x-auto">
-                    {Array.from({ length: chainLength }).map((_, i) => {
-                      const isActiveMeasure = isPlaying && chainMeasure === i;
-                      return (
-                        <div
-                          key={i}
-                          className={`flex flex-shrink-0 items-center space-x-1 rounded p-1 ${
-                            isActiveMeasure
-                              ? "bg-blue-100 dark:bg-blue-900"
-                              : "bg-muted"
-                          }`}
-                        >
-                          <Label className="w-4 text-center text-xs leading-none">
-                            {i + 1}
-                          </Label>
-                          <Select
-                            value={patternChain[i]}
-                            onValueChange={(val) => {
-                              setPatternChain((prev) => {
-                                const next = [...prev];
-                                next[i] = val as "A" | "B" | "C" | "D";
-                                return next;
-                              });
-                            }}
-                          >
-                            <SelectTrigger className="h-7 w-[55px] px-2 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {(["A", "B", "C", "D"] as const).map((p) => (
-                                <SelectItem key={p} value={p}>
-                                  {p}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-            {/* ──────────────────────────────────────────────────────────────
-    END: Final Pattern Chain UI
-   ────────────────────────────────────────────────────────────── */}
+            <PatternChain
+              chainEnabled={chainEnabled}
+              setChainEnabled={setChainEnabled}
+              chainLength={chainLength}
+              setChainLength={setChainLength}
+              patternChain={patternChain}
+              setPatternChain={setPatternChain}
+              isPlaying={isPlaying}
+              chainMeasure={chainMeasure}
+              measureCounterRef={measureCounterRef}
+              setChainMeasure={setChainMeasure}
+            />
           </div>
           {/* ChannelFx Dialog */}
           <ChannelFxDialog

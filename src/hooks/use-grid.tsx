@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import type { GridState, PadVelocity } from "@/types";
+import type { GridState, PadVelocity, PatternId } from "@/types";
 
 function createEmptyGrid(numChannels: number, numSteps: number): GridState {
   return Array.from({ length: numChannels }).map(() =>
@@ -30,7 +30,7 @@ export function useGrid(numChannels: number) {
   }, [patterns]);
 
   const toggleCell = (
-    pattern: "A" | "B" | "C" | "D",
+    pattern: PatternId,
     row: number,
     col: number,
     newValue: PadVelocity,
@@ -43,7 +43,7 @@ export function useGrid(numChannels: number) {
   };
 
   const shiftGrid = (
-    pattern: "A" | "B" | "C" | "D",
+    pattern: PatternId,
     direction: "left" | "right",
   ) => {
     setPatterns((prev) => {

@@ -21,3 +21,4 @@ export type BusCompressorSettings = {
   makeUpGain: number;
   mix: number;
 };
+export type PatternId = "A" | "B" | "C" | "D";
