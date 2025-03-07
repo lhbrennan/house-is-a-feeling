@@ -1,20 +1,10 @@
 import React, { useRef, useState, useEffect } from "react";
-import {
-  Play,
-  Octagon,
-  Copy,
-  ClipboardCheck,
-  Save,
-  Folder,
-  FilePlus2,
-} from "lucide-react";
+import * as Tone from "tone";
+import { Copy, ClipboardCheck, Save, Folder, FilePlus2 } from "lucide-react";
 
 import { ThemeProvider } from "@/components/theme-provider";
-import * as Tone from "tone";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { Toggle } from "@/components/ui/toggle";
 import {
   Select,
@@ -48,6 +38,7 @@ import type {
   GridState,
 } from "./types";
 import { useGrid } from "@/hooks/use-grid";
+import { TransportControls } from "./components/transport-controls";
 
 // ─────────────────────────────────────────────────────────────────
 // Types & Constants
@@ -682,41 +673,14 @@ function App() {
 
             {/* Top Section: Transport and BPM */}
             <div className="flex flex-wrap items-center space-x-4 pb-4">
-              <Label htmlFor="bpm">BPM:</Label>
-              <Input
-                id="bpm"
-                type="number"
-                value={bpm}
-                onChange={handleBpmChange}
-                className="w-20"
+              <TransportControls
+                bpm={bpm}
+                swing={swing}
+                isPlaying={isPlaying}
+                onBpmChange={handleBpmChange}
+                onSwingChange={setSwing}
+                onTogglePlay={handleTogglePlay}
               />
-
-              <div className="flex items-center space-x-2">
-                <Label htmlFor="swing">Swing:</Label>
-                <Slider
-                  id="swing"
-                  value={[swing]}
-                  onValueChange={([val]) => setSwing(val)}
-                  max={0.5}
-                  step={0.01}
-                  className="w-32"
-                />
-                <span>{Math.round(swing * 100)}%</span>
-              </div>
-
-              <Button onClick={handleTogglePlay}>
-                {isPlaying ? (
-                  <>
-                    <Octagon className="mr-2 h-4 w-4" />
-                    Stop
-                  </>
-                ) : (
-                  <>
-                    <Play className="mr-2 h-4 w-4" />
-                    Play
-                  </>
-                )}
-              </Button>
 
               {/* Pattern Storage Controls */}
               <div className="ml-auto flex gap-2">
