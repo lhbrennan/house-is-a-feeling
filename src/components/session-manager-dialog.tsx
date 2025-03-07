@@ -2,10 +2,10 @@ import React, { useState, useEffect } from "react";
 import { Search, Trash2, Edit2 } from "lucide-react";
 
 import {
-  StoredPattern,
-  searchPatterns,
-  deletePattern,
-} from "@/pattern-storage-service";
+  StoredSession,
+  searchSessions,
+  deleteSession,
+} from "@/session-storage-service";
 import {
   Dialog,
   DialogContent,
@@ -15,64 +15,64 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-type PatternManagerProps = {
+type SessionManagerProps = {
   isOpen: boolean;
   onClose: () => void;
-  onPatternSelect: (pattern: StoredPattern) => void;
-  onPatternRename: (pattern: StoredPattern, newName: string) => void;
+  onSessionSelect: (session: StoredSession) => void;
+  onSessionRename: (session: StoredSession, newName: string) => void;
 };
 
-export function PatternManagerDialog({
+export function SessionManagerDialog({
   isOpen,
   onClose,
-  onPatternSelect,
-  onPatternRename,
-}: PatternManagerProps) {
-  const [patterns, setPatterns] = useState<StoredPattern[]>([]);
+  onSessionSelect,
+  onSessionRename,
+}: SessionManagerProps) {
+  const [sessions, setSessions] = useState<StoredSession[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [renamingPatternId, setRenamingPatternId] = useState<string | null>(
+  const [renamingSessionId, setRenamingSessionId] = useState<string | null>(
     null,
   );
-  const [newPatternName, setNewPatternName] = useState("");
+  const [newSessionsName, setNewSessionsName] = useState("");
 
   useEffect(() => {
     if (isOpen) {
-      // Refresh patterns when dialog opens
-      refreshPatterns();
+      // Refresh sessions when dialog opens
+      refreshSessions();
     }
   }, [isOpen]);
 
-  const refreshPatterns = () => {
-    const allPatterns = searchPatterns(searchQuery);
-    setPatterns(allPatterns);
+  const refreshSessions = () => {
+    const allSessions = searchSessions(searchQuery);
+    setSessions(allSessions);
   };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
-    const filtered = searchPatterns(e.target.value);
-    setPatterns(filtered);
+    const filtered = searchSessions(e.target.value);
+    setSessions(filtered);
   };
 
-  const handleDeletePattern = (id: string, e: React.MouseEvent) => {
+  const handleDeleteSession = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm("Are you sure you want to delete this pattern?")) {
-      deletePattern(id);
-      refreshPatterns();
+    if (confirm("Are you sure you want to delete this session?")) {
+      deleteSession(id);
+      refreshSessions();
     }
   };
 
-  const handleRenameClick = (pattern: StoredPattern, e: React.MouseEvent) => {
+  const handleRenameClick = (session: StoredSession, e: React.MouseEvent) => {
     e.stopPropagation();
-    setRenamingPatternId(pattern.id);
-    setNewPatternName(pattern.name);
+    setRenamingSessionId(session.id);
+    setNewSessionsName(session.name);
   };
 
-  const handleRenameSubmit = (pattern: StoredPattern, e: React.FormEvent) => {
+  const handleRenameSubmit = (session: StoredSession, e: React.FormEvent) => {
     e.preventDefault();
-    if (newPatternName.trim()) {
-      onPatternRename(pattern, newPatternName);
-      setRenamingPatternId(null);
-      refreshPatterns();
+    if (newSessionsName.trim()) {
+      onSessionRename(session, newSessionsName);
+      setRenamingSessionId(null);
+      refreshSessions();
     }
   };
 
@@ -92,7 +92,7 @@ export function PatternManagerDialog({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-h-[80vh] max-w-xl">
         <DialogHeader>
-          <DialogTitle>My Patterns</DialogTitle>
+          <DialogTitle>My Sessions</DialogTitle>
         </DialogHeader>
 
         <div className="relative mb-4">
@@ -101,7 +101,7 @@ export function PatternManagerDialog({
           </div>
           <Input
             type="text"
-            placeholder="Search patterns..."
+            placeholder="Search sessions..."
             value={searchQuery}
             onChange={handleSearch}
             className="pl-10"
@@ -109,25 +109,25 @@ export function PatternManagerDialog({
         </div>
 
         <div className="max-h-[50vh] overflow-y-auto rounded-md border">
-          {patterns.length > 0 ? (
+          {sessions.length > 0 ? (
             <div className="divide-border divide-y">
-              {patterns.map((pattern) => (
+              {sessions.map((session) => (
                 <div
-                  key={pattern.id}
+                  key={session.id}
                   className="hover:bg-accent/50 group relative cursor-pointer p-3"
-                  onClick={() => onPatternSelect(pattern)}
+                  onClick={() => onSessionSelect(session)}
                 >
-                  {renamingPatternId === pattern.id ? (
+                  {renamingSessionId === session.id ? (
                     <form
-                      onSubmit={(e) => handleRenameSubmit(pattern, e)}
+                      onSubmit={(e) => handleRenameSubmit(session, e)}
                       className="mb-2"
                     >
                       <Input
                         type="text"
-                        value={newPatternName}
-                        onChange={(e) => setNewPatternName(e.target.value)}
+                        value={newSessionsName}
+                        onChange={(e) => setNewSessionsName(e.target.value)}
                         autoFocus
-                        onBlur={() => setRenamingPatternId(null)}
+                        onBlur={() => setRenamingSessionId(null)}
                         className="mb-1"
                       />
                       <div className="flex justify-end gap-2">
@@ -135,7 +135,7 @@ export function PatternManagerDialog({
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() => setRenamingPatternId(null)}
+                          onClick={() => setRenamingSessionId(null)}
                         >
                           Cancel
                         </Button>
@@ -146,16 +146,16 @@ export function PatternManagerDialog({
                     </form>
                   ) : (
                     <>
-                      <div className="font-medium">{pattern.name}</div>
+                      <div className="font-medium">{session.name}</div>
                       <div className="text-muted-foreground mt-1 text-xs">
-                        Last updated: {formatDate(pattern.updatedAt)}
+                        Last updated: {formatDate(session.updatedAt)}
                       </div>
                       <div className="absolute top-2 right-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={(e) => handleRenameClick(pattern, e)}
+                          onClick={(e) => handleRenameClick(session, e)}
                         >
                           <Edit2 className="h-4 w-4" />
                         </Button>
@@ -163,7 +163,7 @@ export function PatternManagerDialog({
                           variant="ghost"
                           size="icon"
                           className="text-destructive h-8 w-8"
-                          onClick={(e) => handleDeletePattern(pattern.id, e)}
+                          onClick={(e) => handleDeleteSession(session.id, e)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -176,8 +176,8 @@ export function PatternManagerDialog({
           ) : (
             <div className="text-muted-foreground p-6 text-center">
               {searchQuery
-                ? "No matching patterns found"
-                : "No saved patterns yet"}
+                ? "No matching session found"
+                : "No saved session yet"}
             </div>
           )}
         </div>

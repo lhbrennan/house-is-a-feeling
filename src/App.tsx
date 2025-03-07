@@ -29,13 +29,13 @@ import { Grid } from "@/components/grid";
 import { Ruler } from "@/components/ruler";
 import { ChannelControls } from "@/components/channel-controls";
 import { ChannelFxDialog } from "@/components/channel-fx-dialog";
-import { PatternManagerDialog } from "@/components/pattern-manager-dialog";
-import { SavePatternDialog } from "@/components/save-pattern-dialog";
+import { SessionManagerDialog } from "@/components/session-manager-dialog";
+import { SaveSessionDialog } from "@/components/save-session-dialog";
 import {
-  StoredPattern,
-  savePattern,
-  saveAsNewPattern,
-} from "./pattern-storage-service";
+  StoredSession,
+  saveSession,
+  saveAsNewSession,
+} from "./session-storage-service";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ChannelFx } from "@/components/channel-fx";
 import { GlobalFxDialog } from "@/components/global-fx-dialog";
@@ -144,12 +144,11 @@ function App() {
     initialSelectedSampleIndexes,
   );
 
-  // Pattern Storage States
-  const [currentPatternId, setCurrentPatternId] = useState<string | null>(null);
-  const [currentPatternName, setCurrentPatternName] =
-    useState<string>("Untitled Pattern");
-  const [isPatternModified, setIsPatternModified] = useState(false);
-  console.log("🚀 ~ App ~ isPatternModified:", isPatternModified);
+  // Session Storage States
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [currentSessionName, setCurrentSessionName] =
+    useState<string>("Untitled Session");
+  const [isSessionModified, setIsSessionModified] = useState(false);
 
   // Dialog states
   const [isLoadDialogOpen, setIsLoadDialogOpen] = useState(false);
@@ -170,7 +169,7 @@ function App() {
   // We store swing in a ref so the loop callback can see it
   const swingRef = useRef(swing);
   const currentPatternRef = useRef<"A" | "B" | "C" | "D">(currentPattern);
-  const originalPatternRef = useRef<string | null>(null);
+  const originalSessionRef = useRef<string | null>(null);
 
   useEffect(() => {
     swingRef.current = swing;
@@ -212,13 +211,13 @@ function App() {
   // ──────────────────────────────────────────────────────────────
   // Check for modifications by comparing current patterns to original
   useEffect(() => {
-    if (!currentPatternId || !originalPatternRef.current) {
+    if (!currentSessionId || !originalSessionRef.current) {
       return;
     }
 
     const currentPatternsState = JSON.stringify(patterns);
-    const isModified = currentPatternsState !== originalPatternRef.current;
-    setIsPatternModified(isModified);
+    const isModified = currentPatternsState !== originalSessionRef.current;
+    setIsSessionModified(isModified);
   }, [patterns]);
 
   // We'll track which measure is playing for UI highlight
@@ -585,72 +584,72 @@ function App() {
     setIsLoadDialogOpen(true);
   };
 
-  const handlePatternLoad = (storedPattern: StoredPattern) => {
+  const handleSessionLoad = (storedSession: StoredSession) => {
     // Load the pattern grid data
-    setPatterns(storedPattern.patterns);
+    setPatterns(storedSession.patterns);
 
     // Update the current pattern ID and name
-    setCurrentPatternId(storedPattern.id);
-    setCurrentPatternName(storedPattern.name);
+    setCurrentSessionId(storedSession.id);
+    setCurrentSessionName(storedSession.name);
 
     // Create a snapshot of just the patterns
-    const patternsSnapshot = JSON.stringify(storedPattern.patterns);
+    const patternsSnapshot = JSON.stringify(storedSession.patterns);
 
     // Store the snapshot
-    originalPatternRef.current = patternsSnapshot;
+    originalSessionRef.current = patternsSnapshot;
 
     // Reset modification state
-    setIsPatternModified(false);
+    setIsSessionModified(false);
   };
 
-  const handleSavePattern = () => {
-    if (!currentPatternId) {
+  const handleSaveSession = () => {
+    if (!currentSessionId) {
       // No existing pattern, open Save As dialog
       setIsSaveAsDialogOpen(true);
       return;
     }
 
-    const patternToSave: StoredPattern = {
-      id: currentPatternId,
-      name: currentPatternName,
+    const sessionToSave: StoredSession = {
+      id: currentSessionId,
+      name: currentSessionName,
       patterns: patterns,
       createdAt: "",
       updatedAt: "",
     };
 
-    savePattern(patternToSave);
-    setIsPatternModified(false);
+    saveSession(sessionToSave);
+    setIsSessionModified(false);
   };
 
-  const handlePatternRename = (pattern: StoredPattern, newName: string) => {
-    // If renaming the current pattern, update the name in state
-    if (pattern.id === currentPatternId) {
-      setCurrentPatternName(newName);
+  const handleSessionRename = (session: StoredSession, newName: string) => {
+    // If renaming the current session, update the name in state
+    if (session.id === currentSessionId) {
+      setCurrentSessionName(newName);
     }
 
     // Update the pattern in storage
-    const updatedPattern = {
-      ...pattern,
+    const updatedSession = {
+      ...session,
       name: newName,
     };
 
-    savePattern(updatedPattern);
+    saveSession(updatedSession);
   };
 
-  const handleSaveAsPattern = (name: string) => {
-    const patternToSave = {
+  const handleSaveAsSession = (name: string) => {
+    const sessionToSave = {
       name: name,
       patterns: patterns,
     };
 
-    const savedPattern = saveAsNewPattern(patternToSave);
+    const savedSession = saveAsNewSession(sessionToSave);
 
     // Update the current pattern ID and name
-    setCurrentPatternId(savedPattern.id);
-    setCurrentPatternName(savedPattern.name);
+    setCurrentSessionId(savedSession.id);
+    setCurrentSessionName(savedSession.name);
 
     // Reset modification state since we just saved
-    setIsPatternModified(false);
+    setIsSessionModified(false);
   };
 
   // ──────────────────────────────────────────────────────────────
@@ -673,8 +672,8 @@ function App() {
               {/* Pattern name display with modification indicator */}
               <div className="flex items-center">
                 <h2 className="text-xl font-medium">
-                  {currentPatternName}
-                  {isPatternModified && (
+                  {currentSessionName}
+                  {isSessionModified && (
                     <span className="ml-1 text-orange-500">*</span>
                   )}
                 </h2>
@@ -732,8 +731,8 @@ function App() {
 
                 <Button
                   variant="outline"
-                  onClick={handleSavePattern}
-                  disabled={!isPatternModified && currentPatternId !== null}
+                  onClick={handleSaveSession}
+                  disabled={!isSessionModified && currentSessionId !== null}
                   className="flex items-center"
                 >
                   <Save className="mr-2 h-4 w-4" />
@@ -973,31 +972,31 @@ function App() {
             setOpen={setIsGlobalReverbDialogOpen}
           />
           {/* Pattern Dialogs */}
-          <PatternManagerDialog
+          <SessionManagerDialog
             isOpen={isLoadDialogOpen}
             onClose={() => setIsLoadDialogOpen(false)}
-            onPatternSelect={handlePatternLoad}
-            onPatternRename={handlePatternRename}
+            onSessionSelect={handleSessionLoad}
+            onSessionRename={handleSessionRename}
           />
 
-          <SavePatternDialog
+          <SaveSessionDialog
             isOpen={isSaveAsDialogOpen}
             onClose={() => setIsSaveAsDialogOpen(false)}
-            onSave={handleSaveAsPattern}
+            onSave={handleSaveAsSession}
             initialName={
-              isPatternModified
-                ? currentPatternName
-                : `${currentPatternName} (Copy)`
+              isSessionModified
+                ? currentSessionName
+                : `${currentSessionName} (Copy)`
             }
           />
-          <SavePatternDialog
+          <SaveSessionDialog
             isOpen={isSaveAsDialogOpen}
             onClose={() => setIsSaveAsDialogOpen(false)}
-            onSave={handleSaveAsPattern}
+            onSave={handleSaveAsSession}
             initialName={
-              isPatternModified
-                ? currentPatternName
-                : `${currentPatternName} (Copy)`
+              isSessionModified
+                ? currentSessionName
+                : `${currentSessionName} (Copy)`
             }
           />
         </div>

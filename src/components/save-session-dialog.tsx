@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-import { getAllPatterns } from "@/pattern-storage-service";
+import { getAllSessions } from "@/session-storage-service";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,50 +12,50 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-type SavePatternDialogProps = {
+type SaveSessionDialogProps = {
   isOpen: boolean;
   onClose: () => void;
   onSave: (name: string) => void;
   initialName: string;
 };
 
-export function SavePatternDialog({
+export function SaveSessionDialog({
   isOpen,
   onClose,
   onSave,
   initialName = "",
-}: SavePatternDialogProps) {
-  const [patternName, setPatternName] = useState(initialName);
+}: SaveSessionDialogProps) {
+  const [sessionName, setSessionName] = useState(initialName);
   const [error, setError] = useState("");
   const [existingNames, setExistingNames] = useState<string[]>([]);
 
   useEffect(() => {
     if (isOpen) {
-      setPatternName(initialName);
+      setSessionName(initialName);
       setError("");
 
-      const patterns = getAllPatterns();
-      const names = patterns.map((p) => p.name.toLowerCase());
+      const sessions = getAllSessions();
+      const names = sessions.map((p) => p.name.toLowerCase());
       setExistingNames(names);
     }
   }, [isOpen, initialName]);
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPatternName(e.target.value);
+    setSessionName(e.target.value);
     setError("");
   };
 
   const handleSave = () => {
-    const trimmedName = patternName.trim();
+    const trimmedName = sessionName.trim();
 
     if (!trimmedName) {
-      setError("Pattern name cannot be empty");
+      setError("Session name cannot be empty");
       return;
     }
 
     // Check for duplicate names
     if (existingNames.includes(trimmedName.toLowerCase())) {
-      setError("A pattern with this name already exists");
+      setError("A session with this name already exists");
       return;
     }
 
@@ -67,17 +67,17 @@ export function SavePatternDialog({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Save Pattern As</DialogTitle>
+          <DialogTitle>Save Session As</DialogTitle>
         </DialogHeader>
 
         <div className="py-4">
-          <Label htmlFor="pattern-name" className="mb-2 block">
-            Pattern Name
+          <Label htmlFor="session-name" className="mb-2 block">
+            Session Name
           </Label>
           <Input
-            id="pattern-name"
+            id="session-name"
             type="text"
-            value={patternName}
+            value={sessionName}
             onChange={handleNameChange}
             className="w-full"
             autoFocus
