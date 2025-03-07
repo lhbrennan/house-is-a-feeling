@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 
-import { getAllSessions } from "@/session-storage-service";
+import { getAllSessions } from "@/services/session-storage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

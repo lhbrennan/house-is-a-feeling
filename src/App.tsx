@@ -24,7 +24,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import audioEngine from "./audio-engine";
+import audioEngine from "./services/audio-engine";
 import { Grid } from "@/components/grid";
 import { Ruler } from "@/components/ruler";
 import { ChannelControls } from "@/components/channel-controls";
@@ -35,7 +35,7 @@ import {
   StoredSession,
   saveSession,
   saveAsNewSession,
-} from "./session-storage-service";
+} from "./services/session-storage";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ChannelFx } from "@/components/channel-fx";
 import { GlobalFxDialog } from "@/components/global-fx-dialog";
@@ -47,7 +47,7 @@ import type {
   BusCompressorSettings,
   GridState,
 } from "./types";
-import { useGrid } from "./use-grid";
+import { useGrid } from "@/hooks/use-grid";
 
 // ─────────────────────────────────────────────────────────────────
 // Types & Constants

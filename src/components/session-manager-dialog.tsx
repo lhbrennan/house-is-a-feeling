@@ -5,7 +5,7 @@ import {
   StoredSession,
   searchSessions,
   deleteSession,
-} from "@/session-storage-service";
+} from "@/services/session-storage";
 import {
   Dialog,
   DialogContent,

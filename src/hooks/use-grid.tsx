@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import type { GridState, PadVelocity } from "./types";
+import type { GridState, PadVelocity } from "@/types";
 
 function createEmptyGrid(numChannels: number, numSteps: number): GridState {
   return Array.from({ length: numChannels }).map(() =>
