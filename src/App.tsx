@@ -1,10 +1,9 @@
 import React, { useRef, useState, useEffect } from "react";
 import * as Tone from "tone";
-import { Copy, ClipboardCheck, Save, Folder, FilePlus2 } from "lucide-react";
+import { Save, Folder, FilePlus2 } from "lucide-react";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
-import { Toggle } from "@/components/ui/toggle";
 import { Grid } from "@/components/grid";
 import { Ruler } from "@/components/ruler";
 import { ChannelControls } from "@/components/channel-controls";
@@ -25,13 +24,13 @@ import type {
   ChannelFxState,
   GlobalReverbSettings,
   BusCompressorSettings,
-  GridState,
   PatternId,
 } from "./types";
 import { useGrid } from "@/hooks/use-grid";
 import { TransportControls } from "./components/transport-controls";
 import { useAudioEngine } from "@/hooks/use-audio-engine";
 import { PatternChain } from "./components/pattern-chain";
+import { PatternManager } from "./components/pattern-manager";
 
 // ─────────────────────────────────────────────────────────────────
 // Types & Constants
@@ -111,7 +110,6 @@ function App() {
   const [swing, setSwing] = useState(0);
 
   const [currentPattern, setCurrentPattern] = useState<PatternId>("A");
-  const [copiedPattern, setCopiedPattern] = useState<GridState | null>(null);
 
   const [channelControls, setChannelControls] = useState(
     initialChannelControls,
@@ -525,21 +523,6 @@ function App() {
   };
 
   // ──────────────────────────────────────────────────────────────
-  // Copy / Paste
-  // ──────────────────────────────────────────────────────────────
-  const handleCopy = () => {
-    setCopiedPattern(patterns[currentPattern]);
-  };
-
-  const handlePaste = () => {
-    if (!copiedPattern) return;
-    setPatterns((prev) => ({
-      ...prev,
-      [currentPattern]: copiedPattern.map((row) => [...row]),
-    }));
-  };
-
-  // ──────────────────────────────────────────────────────────────
   // Pattern Storage Handlers
   // ──────────────────────────────────────────────────────────────
   const handleOpenLoadDialog = () => {
@@ -738,46 +721,16 @@ function App() {
                 </Button>
               </div>
 
-              <div className="flex gap-2">
-                {(["A", "B", "C", "D"] as const).map((patternLabel) => {
-                  // When chain mode is active and playing, show the current chain pattern as selected
-                  // Otherwise show the manually selected pattern
-                  const isSelected =
-                    isPlaying && chainEnabled
-                      ? patternChain[chainMeasure] === patternLabel
-                      : currentPattern === patternLabel;
-
-                  return (
-                    <Toggle
-                      key={patternLabel}
-                      pressed={isSelected}
-                      onPressedChange={() => {
-                        // Only allow manual selection when not playing with chain enabled
-                        if (!(isPlaying && chainEnabled)) {
-                          setCurrentPattern(patternLabel);
-                        }
-                      }}
-                    >
-                      {patternLabel}
-                    </Toggle>
-                  );
-                })}
-              </div>
-
-              <div className="ml-4 flex gap-2">
-                <Button variant="outline" onClick={handleCopy}>
-                  <Copy className="mr-2 h-4 w-4" />
-                  Copy
-                </Button>
-                <Button
-                  variant="outline"
-                  disabled={!copiedPattern}
-                  onClick={handlePaste}
-                >
-                  <ClipboardCheck className="mr-2 h-4 w-4" />
-                  Paste
-                </Button>
-              </div>
+              <PatternManager
+                currentPattern={currentPattern}
+                setCurrentPattern={setCurrentPattern}
+                isPlaying={isPlaying}
+                chainEnabled={chainEnabled}
+                patternChain={patternChain}
+                chainMeasure={chainMeasure}
+                patterns={patterns}
+                setPatterns={setPatterns}
+              />
 
               <Button
                 onClick={() => setIsGlobalReverbDialogOpen(true)}
@@ -800,7 +753,7 @@ function App() {
               setChainMeasure={setChainMeasure}
             />
           </div>
-          {/* ChannelFx Dialog */}
+
           <ChannelFxDialog
             channel={activeChannelFxDialog}
             channelFx={
@@ -809,7 +762,7 @@ function App() {
             handleChannelFxChange={handleChannelFxChange}
             onClose={() => setActiveChannelFxDialog(null)}
           />
-          {/* GlobalFx Dialog */}
+
           <GlobalFxDialog
             isOpen={isGlobalReverbDialogOpen}
             globalReverbSettings={globalReverbSettings}
@@ -818,7 +771,7 @@ function App() {
             handleBusCompressorChange={handleBusCompressorChange}
             setOpen={setIsGlobalReverbDialogOpen}
           />
-          {/* Pattern Dialogs */}
+
           <SessionManagerDialog
             isOpen={isLoadDialogOpen}
             onClose={() => setIsLoadDialogOpen(false)}
