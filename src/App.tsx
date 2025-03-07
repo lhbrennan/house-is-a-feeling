@@ -57,7 +57,7 @@ const initialChannelFx: Record<ChannelName, ChannelFxState> =
   Object.fromEntries(
     CHANNEL_NAMES.map((channel) => [
       channel,
-      { time: "8n", wet: 0.0, feedback: 0.25, reverbSend: 0 },
+      { delayTime: "8n", delayWet: 0.0, delayFeedback: 0.25, reverbSend: 0 },
     ]),
   ) as Record<ChannelName, ChannelFxState>;
 
@@ -416,9 +416,9 @@ function App() {
   function applyAllChannelFx(effects: Record<ChannelName, ChannelFxState>) {
     if (!engineReady) return;
     Object.entries(effects).forEach(([channel, fx]) => {
-      audioEngine.setChannelDelayTime(channel as ChannelName, fx.time);
-      audioEngine.setChannelDelayWet(channel as ChannelName, fx.wet);
-      audioEngine.setChannelDelayFeedback(channel as ChannelName, fx.feedback);
+      audioEngine.setChannelDelayTime(channel as ChannelName, fx.delayTime);
+      audioEngine.setChannelDelayWet(channel as ChannelName, fx.delayWet);
+      audioEngine.setChannelDelayFeedback(channel as ChannelName, fx.delayFeedback);
       audioEngine.setChannelReverbSend(channel as ChannelName, fx.reverbSend);
     });
   }
@@ -433,9 +433,9 @@ function App() {
       updated[channel] = { ...updated[channel], [field]: value };
 
       if (engineReady) {
-        audioEngine.setChannelDelayTime(channel, updated[channel].time);
-        audioEngine.setChannelDelayWet(channel, updated[channel].wet);
-        audioEngine.setChannelDelayFeedback(channel, updated[channel].feedback);
+        audioEngine.setChannelDelayTime(channel, updated[channel].delayTime);
+        audioEngine.setChannelDelayWet(channel, updated[channel].delayWet);
+        audioEngine.setChannelDelayFeedback(channel, updated[channel].delayFeedback);
         audioEngine.setChannelReverbSend(channel, updated[channel].reverbSend);
       }
       return updated;
@@ -688,6 +688,7 @@ function App() {
                   chainEnabled={chainEnabled}
                   chainMeasure={chainMeasure}
                 />
+
                 <Grid
                   grid={patterns[getDisplayedPattern()]}
                   toggleCell={(row, col, newVal) =>
@@ -704,7 +705,7 @@ function App() {
               />
             </div>
 
-            {/* Pattern controls */}
+            {/* Bottom Section: Pattern controls */}
             <div className="flex items-center justify-center gap-4">
               <div className="flex items-center justify-center gap-3">
                 <Button
