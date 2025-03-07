@@ -989,7 +989,6 @@ function App() {
                 ? currentPatternName
                 : `${currentPatternName} (Copy)`
             }
-            currentPatternId={currentPatternId}
           />
           <SavePatternDialog
             isOpen={isSaveAsDialogOpen}
