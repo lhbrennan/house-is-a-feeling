@@ -1,5 +1,13 @@
 import React, { useRef, useState, useEffect } from "react";
-import { Play, Octagon, Copy, ClipboardCheck } from "lucide-react";
+import {
+  Play,
+  Octagon,
+  Copy,
+  ClipboardCheck,
+  Save,
+  Folder,
+  FilePlus2,
+} from "lucide-react";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import * as Tone from "tone";
@@ -16,12 +24,18 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-
 import audioEngine from "./audio-engine";
 import { Grid } from "@/components/grid";
 import { Ruler } from "@/components/ruler";
 import { ChannelControls } from "@/components/channel-controls";
 import { ChannelFxDialog } from "@/components/channel-fx-dialog";
+import { PatternManagerDialog } from "@/components/pattern-manager-dialog";
+import { SavePatternDialog } from "@/components/save-pattern-dialog";
+import {
+  StoredPattern,
+  savePattern,
+  saveAsNewPattern,
+} from "./pattern-storage-service";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ChannelFx } from "@/components/channel-fx";
 import { GlobalFxDialog } from "@/components/global-fx-dialog";
@@ -130,7 +144,16 @@ function App() {
     initialSelectedSampleIndexes,
   );
 
+  // Pattern Storage States
+  const [currentPatternId, setCurrentPatternId] = useState<string | null>(null);
+  const [currentPatternName, setCurrentPatternName] =
+    useState<string>("Untitled Pattern");
+  const [isPatternModified, setIsPatternModified] = useState(false);
+  console.log("🚀 ~ App ~ isPatternModified:", isPatternModified);
+
   // Dialog states
+  const [isLoadDialogOpen, setIsLoadDialogOpen] = useState(false);
+  const [isSaveAsDialogOpen, setIsSaveAsDialogOpen] = useState(false);
   const [activeChannelFxDialog, setActiveChannelFxDialog] =
     useState<ChannelName | null>(null);
   const [isGlobalReverbDialogOpen, setIsGlobalReverbDialogOpen] =
@@ -147,6 +170,7 @@ function App() {
   // We store swing in a ref so the loop callback can see it
   const swingRef = useRef(swing);
   const currentPatternRef = useRef<"A" | "B" | "C" | "D">(currentPattern);
+  const originalPatternRef = useRef<string | null>(null);
 
   useEffect(() => {
     swingRef.current = swing;
@@ -159,7 +183,7 @@ function App() {
   const [isPlaying, setIsPlaying] = useState(false);
 
   // ──────────────────────────────────────────────────────────────
-  // Pattern Chain States, Moved to Refs
+  // Pattern Chain States
   // ──────────────────────────────────────────────────────────────
   // We keep the official "UI state" in normal React state,
   // but we also store them in refs so the Tone.Loop callback sees updates.
@@ -182,6 +206,20 @@ function App() {
   useEffect(() => {
     patternChainRef.current = patternChain;
   }, [patternChain]);
+
+  // ──────────────────────────────────────────────────────────────
+  // Track modifications to the patterns
+  // ──────────────────────────────────────────────────────────────
+  // Check for modifications by comparing current patterns to original
+  useEffect(() => {
+    if (!currentPatternId || !originalPatternRef.current) {
+      return;
+    }
+
+    const currentPatternsState = JSON.stringify(patterns);
+    const isModified = currentPatternsState !== originalPatternRef.current;
+    setIsPatternModified(isModified);
+  }, [patterns]);
 
   // We'll track which measure is playing for UI highlight
   const measureCounterRef = useRef(0);
@@ -541,6 +579,81 @@ function App() {
   };
 
   // ──────────────────────────────────────────────────────────────
+  // Pattern Storage Handlers
+  // ──────────────────────────────────────────────────────────────
+  const handleOpenLoadDialog = () => {
+    setIsLoadDialogOpen(true);
+  };
+
+  const handlePatternLoad = (storedPattern: StoredPattern) => {
+    // Load the pattern grid data
+    setPatterns(storedPattern.patterns);
+
+    // Update the current pattern ID and name
+    setCurrentPatternId(storedPattern.id);
+    setCurrentPatternName(storedPattern.name);
+
+    // Create a snapshot of just the patterns
+    const patternsSnapshot = JSON.stringify(storedPattern.patterns);
+
+    // Store the snapshot
+    originalPatternRef.current = patternsSnapshot;
+
+    // Reset modification state
+    setIsPatternModified(false);
+  };
+
+  const handleSavePattern = () => {
+    if (!currentPatternId) {
+      // No existing pattern, open Save As dialog
+      setIsSaveAsDialogOpen(true);
+      return;
+    }
+
+    const patternToSave: StoredPattern = {
+      id: currentPatternId,
+      name: currentPatternName,
+      patterns: patterns,
+      createdAt: "",
+      updatedAt: "",
+    };
+
+    savePattern(patternToSave);
+    setIsPatternModified(false);
+  };
+
+  const handlePatternRename = (pattern: StoredPattern, newName: string) => {
+    // If renaming the current pattern, update the name in state
+    if (pattern.id === currentPatternId) {
+      setCurrentPatternName(newName);
+    }
+
+    // Update the pattern in storage
+    const updatedPattern = {
+      ...pattern,
+      name: newName,
+    };
+
+    savePattern(updatedPattern);
+  };
+
+  const handleSaveAsPattern = (name: string) => {
+    const patternToSave = {
+      name: name,
+      patterns: patterns,
+    };
+
+    const savedPattern = saveAsNewPattern(patternToSave);
+
+    // Update the current pattern ID and name
+    setCurrentPatternId(savedPattern.id);
+    setCurrentPatternName(savedPattern.name);
+
+    // Reset modification state since we just saved
+    setIsPatternModified(false);
+  };
+
+  // ──────────────────────────────────────────────────────────────
   // Render
   // ──────────────────────────────────────────────────────────────
   return (
@@ -552,9 +665,21 @@ function App() {
 
         <div className="flex h-full justify-center">
           <div className="space-y-6 p-4">
-            <h1 className="text-foreground text-center font-[Chicle] text-4xl font-bold drop-shadow-lg">
-              House is a Feeling
-            </h1>
+            <div className="flex items-center justify-between">
+              <h1 className="text-foreground text-center font-[Chicle] text-4xl font-bold drop-shadow-lg">
+                House is a Feeling
+              </h1>
+
+              {/* Pattern name display with modification indicator */}
+              <div className="flex items-center">
+                <h2 className="text-xl font-medium">
+                  {currentPatternName}
+                  {isPatternModified && (
+                    <span className="ml-1 text-orange-500">*</span>
+                  )}
+                </h2>
+              </div>
+            </div>
 
             {/* Top Section: Transport and BPM */}
             <div className="flex flex-wrap items-center space-x-4 pb-4">
@@ -594,12 +719,36 @@ function App() {
                 )}
               </Button>
 
-              <Button
-                onClick={() => setIsGlobalReverbDialogOpen(true)}
-                className="ml-auto"
-              >
-                Global Effects
-              </Button>
+              {/* Pattern Storage Controls */}
+              <div className="ml-auto flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleOpenLoadDialog}
+                  className="flex items-center"
+                >
+                  <Folder className="mr-2 h-4 w-4" />
+                  My Patterns
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={handleSavePattern}
+                  disabled={!isPatternModified && currentPatternId !== null}
+                  className="flex items-center"
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  Save
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={() => setIsSaveAsDialogOpen(true)}
+                  className="flex items-center"
+                >
+                  <FilePlus2 className="mr-2 h-4 w-4" />
+                  Save As
+                </Button>
+              </div>
             </div>
 
             {/* Main Section: ChannelControls, Grid, & ChannelFx */}
@@ -654,6 +803,7 @@ function App() {
                   Shift Right
                 </Button>
               </div>
+
               <div className="flex gap-2">
                 {(["A", "B", "C", "D"] as const).map((patternLabel) => {
                   // When chain mode is active and playing, show the current chain pattern as selected
@@ -694,6 +844,13 @@ function App() {
                   Paste
                 </Button>
               </div>
+
+              <Button
+                onClick={() => setIsGlobalReverbDialogOpen(true)}
+                className="ml-auto"
+              >
+                Global Effects
+              </Button>
             </div>
 
             {/* ──────────────────────────────────────────────────────────────
@@ -797,7 +954,6 @@ function App() {
     END: Final Pattern Chain UI
    ────────────────────────────────────────────────────────────── */}
           </div>
-
           {/* ChannelFx Dialog */}
           <ChannelFxDialog
             channel={activeChannelFxDialog}
@@ -807,7 +963,6 @@ function App() {
             handleChannelFxChange={handleChannelFxChange}
             onClose={() => setActiveChannelFxDialog(null)}
           />
-
           {/* GlobalFx Dialog */}
           <GlobalFxDialog
             isOpen={isGlobalReverbDialogOpen}
@@ -816,6 +971,35 @@ function App() {
             handleGlobalReverbChange={handleGlobalReverbChange}
             handleBusCompressorChange={handleBusCompressorChange}
             setOpen={setIsGlobalReverbDialogOpen}
+          />
+          {/* Pattern Dialogs */}
+          <PatternManagerDialog
+            isOpen={isLoadDialogOpen}
+            onClose={() => setIsLoadDialogOpen(false)}
+            onPatternSelect={handlePatternLoad}
+            onPatternRename={handlePatternRename}
+          />
+
+          <SavePatternDialog
+            isOpen={isSaveAsDialogOpen}
+            onClose={() => setIsSaveAsDialogOpen(false)}
+            onSave={handleSaveAsPattern}
+            initialName={
+              isPatternModified
+                ? currentPatternName
+                : `${currentPatternName} (Copy)`
+            }
+            currentPatternId={currentPatternId}
+          />
+          <SavePatternDialog
+            isOpen={isSaveAsDialogOpen}
+            onClose={() => setIsSaveAsDialogOpen(false)}
+            onSave={handleSaveAsPattern}
+            initialName={
+              isPatternModified
+                ? currentPatternName
+                : `${currentPatternName} (Copy)`
+            }
           />
         </div>
       </div>
