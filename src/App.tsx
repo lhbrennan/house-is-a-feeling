@@ -14,7 +14,6 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import audioEngine from "./services/audio-engine";
 import { Grid } from "@/components/grid";
 import { Ruler } from "@/components/ruler";
 import { ChannelControls } from "@/components/channel-controls";
@@ -39,6 +38,7 @@ import type {
 } from "./types";
 import { useGrid } from "@/hooks/use-grid";
 import { TransportControls } from "./components/transport-controls";
+import { useAudioEngine } from "@/hooks/use-audio-engine";
 
 // ─────────────────────────────────────────────────────────────────
 // Types & Constants
@@ -110,7 +110,8 @@ function App() {
   // ──────────────────────────────────────────────────────────────
   // State
   // ──────────────────────────────────────────────────────────────
-  const [engineReady, setEngineReady] = useState(false);
+
+  const { engineReady, resumeAudioContext, audioEngine } = useAudioEngine();
 
   const [bpm, setBpm] = useState(120);
   const [currentStep, setCurrentStep] = useState<number | null>(null);
@@ -223,32 +224,6 @@ function App() {
   };
 
   // ──────────────────────────────────────────────────────────────
-  // Auto-initialize audio engine
-  // ──────────────────────────────────────────────────────────────
-  useEffect(() => {
-    const initAudioEngine = async () => {
-      await audioEngine.init();
-      setEngineReady(true);
-      console.log("Audio engine initialized via first user interaction.");
-    };
-
-    const handleFirstInteraction = () => {
-      initAudioEngine();
-      window.removeEventListener("click", handleFirstInteraction);
-      window.removeEventListener("touchstart", handleFirstInteraction);
-    };
-
-    // Listen for the very first interaction.
-    window.addEventListener("click", handleFirstInteraction);
-    window.addEventListener("touchstart", handleFirstInteraction);
-
-    return () => {
-      window.removeEventListener("click", handleFirstInteraction);
-      window.removeEventListener("touchstart", handleFirstInteraction);
-    };
-  }, []);
-
-  // ──────────────────────────────────────────────────────────────
   // Create the main loop once
   // ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -323,9 +298,7 @@ function App() {
   };
 
   const handleStart = async () => {
-    if (Tone.getContext().state !== "running") {
-      await Tone.getContext().resume();
-    }
+    await resumeAudioContext();
     isPlayingRef.current = true;
     setIsPlaying(true);
     audioEngine.startTransport();
@@ -943,16 +916,6 @@ function App() {
             onSessionRename={handleSessionRename}
           />
 
-          <SaveSessionDialog
-            isOpen={isSaveAsDialogOpen}
-            onClose={() => setIsSaveAsDialogOpen(false)}
-            onSave={handleSaveAsSession}
-            initialName={
-              isSessionModified
-                ? currentSessionName
-                : `${currentSessionName} (Copy)`
-            }
-          />
           <SaveSessionDialog
             isOpen={isSaveAsDialogOpen}
             onClose={() => setIsSaveAsDialogOpen(false)}
