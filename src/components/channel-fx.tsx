@@ -24,7 +24,7 @@ function ChannelFx({
   return (
     <div className="ml-2 flex h-[390px] flex-col items-center justify-between">
       {CHANNEL_NAMES.map((channel) => {
-        const { wet, reverbSend } = channelFx[channel];
+        const { delayWet, reverbSend } = channelFx[channel];
         return (
           <div
             key={channel}
@@ -34,9 +34,9 @@ function ChannelFx({
             <div className="flex grow">
               <Label className="mr-2">D</Label>
               <Slider
-                value={[wet]}
+                value={[delayWet]}
                 onValueChange={([val]) =>
-                  handleChannelFxChange(channel, "wet", val)
+                  handleChannelFxChange(channel, "delayWet", val)
                 }
                 min={0}
                 max={1}

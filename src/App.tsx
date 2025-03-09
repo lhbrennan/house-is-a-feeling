@@ -57,7 +57,12 @@ const initialChannelFx: Record<ChannelName, ChannelFxState> =
   Object.fromEntries(
     CHANNEL_NAMES.map((channel) => [
       channel,
-      { delayTime: "8n", delayWet: 0.0, delayFeedback: 0.25, reverbSend: 0 },
+      {
+        delayTime: "8n.",
+        delayWet: 0.0,
+        delayFeedback: 0.25,
+        reverbSend: channel === "Kick1" || channel === "Kick2" ? 0 : 0.15,
+      }, 
     ]),
   ) as Record<ChannelName, ChannelFxState>;
 
@@ -418,7 +423,10 @@ function App() {
     Object.entries(effects).forEach(([channel, fx]) => {
       audioEngine.setChannelDelayTime(channel as ChannelName, fx.delayTime);
       audioEngine.setChannelDelayWet(channel as ChannelName, fx.delayWet);
-      audioEngine.setChannelDelayFeedback(channel as ChannelName, fx.delayFeedback);
+      audioEngine.setChannelDelayFeedback(
+        channel as ChannelName,
+        fx.delayFeedback,
+      );
       audioEngine.setChannelReverbSend(channel as ChannelName, fx.reverbSend);
     });
   }
@@ -435,7 +443,10 @@ function App() {
       if (engineReady) {
         audioEngine.setChannelDelayTime(channel, updated[channel].delayTime);
         audioEngine.setChannelDelayWet(channel, updated[channel].delayWet);
-        audioEngine.setChannelDelayFeedback(channel, updated[channel].delayFeedback);
+        audioEngine.setChannelDelayFeedback(
+          channel,
+          updated[channel].delayFeedback,
+        );
         audioEngine.setChannelReverbSend(channel, updated[channel].reverbSend);
       }
       return updated;

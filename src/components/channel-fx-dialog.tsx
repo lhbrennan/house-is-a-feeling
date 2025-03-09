@@ -58,9 +58,9 @@ function ChannelFxDialog({
             <div>
               <Label className="mr-2 font-medium">Delay Time:</Label>
               <Select
-                value={channelFx.time.toString()}
+                value={channelFx.delayTime.toString()}
                 onValueChange={(val) =>
-                  handleChannelFxChange(channel!, "time", val)
+                  handleChannelFxChange(channel!, "delayTime", val)
                 }
               >
                 <SelectTrigger className="w-[160px]">
@@ -80,12 +80,12 @@ function ChannelFxDialog({
             {/* Feedback */}
             <div>
               <Label className="mb-2 font-medium">
-                Feedback: {channelFx.feedback.toFixed(2)}
+                Feedback: {channelFx.delayFeedback.toFixed(2)}
               </Label>
               <Slider
-                value={[channelFx.feedback]}
+                value={[channelFx.delayFeedback]}
                 onValueChange={([val]) =>
-                  handleChannelFxChange(channel!, "feedback", val)
+                  handleChannelFxChange(channel!, "delayFeedback", val)
                 }
                 min={0}
                 max={1}
