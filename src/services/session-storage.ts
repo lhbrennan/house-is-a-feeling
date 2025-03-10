@@ -1,4 +1,11 @@
-import { GridState } from "../types";
+import {
+  GridState,
+  ChannelFxState,
+  GlobalReverbSettings,
+  BusCompressorSettings,
+  PatternId,
+  ChannelControlsType,
+} from "@/types";
 
 export type StoredSession = {
   id: string;
@@ -9,6 +16,16 @@ export type StoredSession = {
     C: GridState;
     D: GridState;
   };
+  bpm: number;
+  swing: number;
+  channelControls: Record<string, ChannelControlsType>;
+  channelFx: Record<string, ChannelFxState>;
+  globalReverbSettings: GlobalReverbSettings;
+  busCompressorSettings: BusCompressorSettings;
+  chainEnabled: boolean;
+  chainLength: number;
+  patternChain: Array<PatternId>;
+  selectedSampleIndexes: Record<string, number>;
   createdAt: string;
   updatedAt: string;
 };
@@ -23,13 +40,13 @@ export const getAllSessions = (): StoredSession[] => {
     const sessionsJson = localStorage.getItem(STORAGE_KEY);
     return sessionsJson ? JSON.parse(sessionsJson) : [];
   } catch (error) {
-    console.error("Error retrieving patterns from storage:", error);
+    console.error("Error retrieving sessions from storage:", error);
     return [];
   }
 };
 
 /**
- * Save a pattern to local storage
+ * Save a session to local storage
  */
 export const saveSession = (session: StoredSession): StoredSession => {
   try {
@@ -39,7 +56,7 @@ export const saveSession = (session: StoredSession): StoredSession => {
     if (session.id) {
       const index = sessions.findIndex((p) => p.id === session.id);
       if (index !== -1) {
-        // Update existing sessionj
+        // Update existing session
         const updatedSession = {
           ...session,
           updatedAt: new Date().toISOString(),
@@ -81,10 +98,7 @@ export const saveAsNewSession = (
   const { id, ...sessionWithoutId } = session;
 
   const newSession: StoredSession = {
-    ...(sessionWithoutId as Omit<
-      StoredSession,
-      "id" | "createdAt" | "updatedAt"
-    >),
+    ...(sessionWithoutId as StoredSession),
     id: "",
     createdAt: "",
     updatedAt: "",
@@ -94,7 +108,7 @@ export const saveAsNewSession = (
 };
 
 /**
- * Get a pattern by ID
+ * Get a session by ID
  */
 export const getSessionById = (id: string): StoredSession | null => {
   const sessions = getAllSessions();

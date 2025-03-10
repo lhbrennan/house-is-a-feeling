@@ -14,6 +14,7 @@ import {
   StoredSession,
   saveSession,
   saveAsNewSession,
+  getSessionById,
 } from "./services/session-storage";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ChannelFx } from "@/components/channel-fx";
@@ -25,6 +26,7 @@ import type {
   GlobalReverbSettings,
   BusCompressorSettings,
   PatternId,
+  ChannelControlsType,
 } from "./types";
 import { useGrid } from "@/hooks/use-grid";
 import { TransportControls } from "./components/transport-controls";
@@ -37,13 +39,6 @@ import { PatternManager } from "./components/pattern-manager";
 // ─────────────────────────────────────────────────────────────────
 const NUM_CHANNELS = CHANNEL_NAMES.length;
 const NUM_STEPS = 16;
-
-export type ChannelControlsType = {
-  mute: boolean;
-  solo: boolean;
-  volume: number; // normalized 0..1
-  pan: number; // -1..1
-};
 
 const initialChannelControls: Record<ChannelName, ChannelControlsType> =
   Object.fromEntries(
@@ -62,7 +57,7 @@ const initialChannelFx: Record<ChannelName, ChannelFxState> =
         delayWet: 0.0,
         delayFeedback: 0.25,
         reverbSend: channel === "Kick1" || channel === "Kick2" ? 0 : 0.15,
-      }, 
+      },
     ]),
   ) as Record<ChannelName, ChannelFxState>;
 
@@ -200,18 +195,50 @@ function App() {
   }, [patternChain]);
 
   // ──────────────────────────────────────────────────────────────
-  // Track modifications to the patterns
+  // Track modifications to all session-related state
   // ──────────────────────────────────────────────────────────────
-  // Check for modifications by comparing current patterns to original
   useEffect(() => {
-    if (!currentSessionId || !originalSessionRef.current) {
+    if (!currentSessionId) {
       return;
     }
 
-    const currentPatternsState = JSON.stringify(patterns);
-    const isModified = currentPatternsState !== originalSessionRef.current;
+    // Get the current session from storage to compare with current state
+    const storedSession = getSessionById(currentSessionId);
+    if (!storedSession) return;
+
+    const isModified =
+      JSON.stringify(patterns) !== JSON.stringify(storedSession.patterns) ||
+      bpm !== storedSession.bpm ||
+      swing !== storedSession.swing ||
+      JSON.stringify(channelControls) !==
+        JSON.stringify(storedSession.channelControls) ||
+      JSON.stringify(channelFx) !== JSON.stringify(storedSession.channelFx) ||
+      JSON.stringify(globalReverbSettings) !==
+        JSON.stringify(storedSession.globalReverbSettings) ||
+      JSON.stringify(busCompressorSettings) !==
+        JSON.stringify(storedSession.busCompressorSettings) ||
+      chainEnabled !== storedSession.chainEnabled ||
+      chainLength !== storedSession.chainLength ||
+      JSON.stringify(patternChain) !==
+        JSON.stringify(storedSession.patternChain) ||
+      JSON.stringify(selectedSampleIndexes) !==
+        JSON.stringify(storedSession.selectedSampleIndexes);
+
     setIsSessionModified(isModified);
-  }, [patterns]);
+  }, [
+    currentSessionId,
+    patterns,
+    bpm,
+    swing,
+    channelControls,
+    channelFx,
+    globalReverbSettings,
+    busCompressorSettings,
+    chainEnabled,
+    chainLength,
+    patternChain,
+    selectedSampleIndexes,
+  ]);
 
   // We'll track which measure is playing for UI highlight
   const measureCounterRef = useRef(0);
@@ -548,11 +575,80 @@ function App() {
     setCurrentSessionId(storedSession.id);
     setCurrentSessionName(storedSession.name);
 
-    // Create a snapshot of just the patterns
-    const patternsSnapshot = JSON.stringify(storedSession.patterns);
+    // Load additional settings if they exist
+    if (storedSession.bpm) {
+      setBpm(storedSession.bpm);
+      audioEngine.setBPM(storedSession.bpm);
+    }
+
+    if (storedSession.swing !== undefined) {
+      setSwing(storedSession.swing);
+    }
+
+    // Load channel controls
+    if (
+      storedSession.channelControls &&
+      Object.keys(storedSession.channelControls).length > 0
+    ) {
+      setChannelControls(storedSession.channelControls);
+      applyAllChannelControls(storedSession.channelControls);
+    }
+
+    // Load channel FX
+    if (
+      storedSession.channelFx &&
+      Object.keys(storedSession.channelFx).length > 0
+    ) {
+      setChannelFx(storedSession.channelFx);
+      applyAllChannelFx(storedSession.channelFx);
+    }
+
+    // Load global reverb settings
+    if (storedSession.globalReverbSettings) {
+      setGlobalReverbSettings(storedSession.globalReverbSettings);
+      applyGlobalReverbSettings(storedSession.globalReverbSettings);
+    }
+
+    // Load bus compressor settings
+    if (storedSession.busCompressorSettings) {
+      setBusCompressorSettings(storedSession.busCompressorSettings);
+      applyBusCompressorSettings(storedSession.busCompressorSettings);
+    }
+
+    // Load pattern chain settings
+    if (storedSession.chainEnabled !== undefined) {
+      setChainEnabled(storedSession.chainEnabled);
+    }
+
+    if (storedSession.chainLength) {
+      setChainLength(storedSession.chainLength);
+    }
+
+    if (storedSession.patternChain && storedSession.patternChain.length > 0) {
+      setPatternChain(storedSession.patternChain);
+    }
+
+    // Load sample selections
+    if (
+      storedSession.selectedSampleIndexes &&
+      Object.keys(storedSession.selectedSampleIndexes).length > 0
+    ) {
+      // Apply the sample changes asynchronously
+      Object.entries(storedSession.selectedSampleIndexes).forEach(
+        ([channel, sampleIdx]) => {
+          handleChannelSampleChange(channel as ChannelName, sampleIdx);
+        },
+      );
+
+      // Update state
+      setSelectedSampleIndexes(storedSession.selectedSampleIndexes);
+    }
+
+    // Create a snapshot of the loaded session
+    const sessionSnapshot = JSON.stringify(storedSession.patterns);
 
     // Store the snapshot
-    originalSessionRef.current = patternsSnapshot;
+    originalSessionRef.current = sessionSnapshot;
 
     // Reset modification state
     setIsSessionModified(false);
@@ -569,6 +665,16 @@ function App() {
       id: currentSessionId,
       name: currentSessionName,
       patterns: patterns,
+      bpm: bpm,
+      swing: swing,
+      channelControls: channelControls,
+      channelFx: channelFx,
+      globalReverbSettings: globalReverbSettings,
+      busCompressorSettings: busCompressorSettings,
+      chainEnabled: chainEnabled,
+      chainLength: chainLength,
+      patternChain: patternChain,
+      selectedSampleIndexes: selectedSampleIndexes,
       createdAt: "",
       updatedAt: "",
     };
@@ -596,6 +702,16 @@ function App() {
     const sessionToSave = {
       name: name,
       patterns: patterns,
+      bpm: bpm,
+      swing: swing,
+      channelControls: channelControls,
+      channelFx: channelFx,
+      globalReverbSettings: globalReverbSettings,
+      busCompressorSettings: busCompressorSettings,
+      chainEnabled: chainEnabled,
+      chainLength: chainLength,
+      patternChain: patternChain,
+      selectedSampleIndexes: selectedSampleIndexes,
     };
 
     const savedSession = saveAsNewSession(sessionToSave);

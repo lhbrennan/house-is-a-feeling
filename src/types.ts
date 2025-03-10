@@ -22,3 +22,9 @@ export type BusCompressorSettings = {
   mix: number;
 };
 export type PatternId = "A" | "B" | "C" | "D";
+export type ChannelControlsType = {
+  mute: boolean;
+  solo: boolean;
+  volume: number; // normalized 0..1
+  pan: number; // -1..1
+};
