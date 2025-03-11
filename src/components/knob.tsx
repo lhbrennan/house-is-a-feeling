@@ -1,6 +1,50 @@
 import React, { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
+const calculateSensitivity = (min: number, max: number) => {
+  const range = Math.abs(max - min);
+
+  // Base sensitivity that works well for range 0-100
+  const baseSensitivity = 0.25;
+
+  if (range <= 1) {
+    // For very small ranges (0-1), use a much lower sensitivity
+    return baseSensitivity * 0.01 * range;
+  } else if (range <= 10) {
+    // For small ranges (1-10), scale appropriately
+    return baseSensitivity * 0.1;
+  } else if (range <= 100) {
+    // For medium ranges (10-100), use the standard sensitivity
+    return baseSensitivity;
+  } else {
+    // For very large ranges (>100), increase sensitivity
+    return baseSensitivity * (range / 100);
+  }
+};
+
+// Helper function to quantize a value to the nearest step with proper precision
+const quantizeToStep = (
+  value: number,
+  step: number,
+  min: number,
+  max: number,
+) => {
+  if (step <= 0) return Math.max(min, Math.min(max, value));
+
+  // Calculate how many decimal places we need based on the step
+  const precision = Math.floor(Math.log10(1 / step)) + 1;
+  const factor = Math.pow(10, precision);
+
+  // Round to the nearest step using the determined precision
+  let quantizedValue = Math.round(value / step) * step;
+
+  // Fix floating point precision issues
+  quantizedValue = Math.round(quantizedValue * factor) / factor;
+
+  // Clamp to range
+  return Math.max(min, Math.min(max, quantizedValue));
+};
+
 type KnobPosition = "left" | "center" | "right";
 type ValueVisibility = "hidden" | "visible" | "onHover";
 
@@ -374,8 +418,8 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
       // Calculate vertical distance moved
       const deltaY = startY.current - e.clientY;
 
-      // Standard sensitivity
-      const sensitivity = 0.25;
+      // Use adaptive sensitivity based on range
+      const sensitivity = calculateSensitivity(min, max);
 
       // Calculate value change - consistent across all positions
       const valueChange = deltaY * sensitivity;
@@ -383,13 +427,8 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
       // Calculate new value based on starting value + change
       let newValue = startValue.current + valueChange;
 
-      // Apply step quantization
-      if (step > 0) {
-        newValue = Math.round(newValue / step) * step;
-      }
-
-      // Clamp to range
-      newValue = Math.max(min, Math.min(max, newValue));
+      // Apply step quantization and range clamping
+      newValue = quantizeToStep(newValue, step, min, max);
 
       // Update local state
       setLocalValue(newValue);
@@ -468,20 +507,17 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
       // Calculate vertical distance moved
       const deltaY = startY.current - e.touches[0].clientY;
 
-      // Calculate how much to change the value
-      const sensitivity = 0.25;
+      // Use adaptive sensitivity based on range
+      const sensitivity = calculateSensitivity(min, max);
+
+      // Calculate value change
       const valueChange = deltaY * sensitivity;
 
       // Calculate new value based on starting value + change
       let newValue = startValue.current + valueChange;
 
-      // Apply step quantization
-      if (step > 0) {
-        newValue = Math.round(newValue / step) * step;
-      }
-
-      // Clamp to range
-      newValue = Math.max(min, Math.min(max, newValue));
+      // Apply step quantization and range clamping
+      newValue = quantizeToStep(newValue, step, min, max);
 
       // Update local state
       setLocalValue(newValue);
