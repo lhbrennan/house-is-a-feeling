@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import * as Tone from "tone";
-import audioEngine from "../services/audio-engine";
+import audioEngine from "@/services/audio-engine";
 
 /**
  * Hook that handles audio engine initialization

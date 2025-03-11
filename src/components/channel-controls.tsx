@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { Toggle } from "@/components/ui/toggle";
 import { Slider } from "@/components/ui/slider";
 
-import { CycleSelect, CYCLE_SELECT_COLORS } from "./cycle-select";
+import { CycleSelect, CYCLE_SELECT_COLORS } from "@/components/cycle-select";
 
 import { SAMPLES, type ChannelNames, type ChannelName } from "@/constants";
 

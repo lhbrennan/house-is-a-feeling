@@ -1,4 +1,4 @@
-import { GridState } from "./types";
+import { GridState } from "@/types";
 
 export function createDefaultGrid(
   numChannels: number,

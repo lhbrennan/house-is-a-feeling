@@ -1,6 +1,6 @@
 import "@/index.css";
 import type { Story } from "@ladle/react";
-import { Grid as BaseGrid } from "../grid";
+import { Grid as BaseGrid } from "@/components/grid";
 import { useGrid } from "@/hooks/use-grid";
 
 export const Grid: Story = () => {
@@ -8,9 +8,7 @@ export const Grid: Story = () => {
 
   return (
     <BaseGrid
-      toggleCell={(row, col, newVal) =>
-        toggleCell('A', row, col, newVal)
-      }
+      toggleCell={(row, col, newVal) => toggleCell("A", row, col, newVal)}
       grid={patterns.A}
       currentStep={0}
     />

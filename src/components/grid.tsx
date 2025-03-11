@@ -1,4 +1,4 @@
-import { Pad, PAD_COLORS } from "./pad";
+import { Pad, PAD_COLORS } from "@/components/pad";
 import type { GridState, PadVelocity } from "@/types";
 
 type GridProps = {

@@ -15,11 +15,11 @@ import {
   saveSession,
   saveAsNewSession,
   getSessionById,
-} from "./services/session-storage";
+} from "@/services/session-storage";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ChannelFx } from "@/components/channel-fx";
 import { GlobalFxDialog } from "@/components/global-fx-dialog";
-import { SAMPLES, CHANNEL_NAMES, type ChannelName } from "./constants";
+import { SAMPLES, CHANNEL_NAMES, type ChannelName } from "@/constants";
 import type {
   PadVelocity,
   ChannelFxState,
@@ -27,12 +27,12 @@ import type {
   BusCompressorSettings,
   PatternId,
   ChannelControlsType,
-} from "./types";
+} from "@/types";
 import { useGrid } from "@/hooks/use-grid";
-import { TransportControls } from "./components/transport-controls";
+import { TransportControls } from "@/components/transport-controls";
 import { useAudioEngine } from "@/hooks/use-audio-engine";
-import { PatternChain } from "./components/pattern-chain";
-import { PatternManager } from "./components/pattern-manager";
+import { PatternChain } from "@/components/pattern-chain";
+import { PatternManager } from "@/components/pattern-manager";
 
 // ─────────────────────────────────────────────────────────────────
 // Types & Constants

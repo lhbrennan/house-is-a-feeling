@@ -1,7 +1,7 @@
 import React from "react";
 import "@/index.css";
 import type { Story } from "@ladle/react";
-import { Pad as BasePad } from "../pad";
+import { Pad as BasePad } from "@/components/pad";
 import type { PadVelocity } from "@/types";
 
 export const Pad: Story = () => {

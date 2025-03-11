@@ -1,5 +1,5 @@
 import * as Tone from "tone";
-import { SAMPLES, type LoopLength, type ChannelName } from "../constants";
+import { SAMPLES, type LoopLength, type ChannelName } from "@/constants";
 
 let isInitialized = false;
 
