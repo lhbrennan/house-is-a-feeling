@@ -127,8 +127,7 @@ function App() {
 
   // Session Storage States
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [currentSessionName, setCurrentSessionName] =
-    useState<string>("Untitled Session");
+  const [currentSessionName, setCurrentSessionName] = useState<string>("");
   const [isSessionModified, setIsSessionModified] = useState(false);
 
   // Dialog states
@@ -433,14 +432,17 @@ function App() {
     });
   };
 
-  const handleChannelSampleChange = async (
+  const handleSampleChange = async (
     channel: ChannelName,
     sampleIdx: number,
   ) => {
     const safeIndex = sampleIdx % SAMPLES[channel].length;
     await audioEngine.setChannelSample(channel, safeIndex);
     setSelectedSampleIndexes((prev) => ({ ...prev, [channel]: safeIndex }));
-    audioEngine.playNote(channel, Tone.now(), 1)
+  };
+
+  const playNoteImmediately = (channel: ChannelName) => {
+    audioEngine.playNote(channel, Tone.now(), 1);
   };
 
   // ──────────────────────────────────────────────────────────────
@@ -637,7 +639,7 @@ function App() {
       // Apply the sample changes asynchronously
       Object.entries(storedSession.selectedSampleIndexes).forEach(
         ([channel, sampleIdx]) => {
-          handleChannelSampleChange(channel as ChannelName, sampleIdx);
+          handleSampleChange(channel as ChannelName, sampleIdx);
         },
       );
 
@@ -800,7 +802,9 @@ function App() {
             <div className="flex">
               <div className="relative ml-4 space-x-4">
                 <div className="absolute top-[-25px] left-0 flex h-6 w-full items-center justify-start gap-2">
-                  <div className="min-w-18 text-center text-xs">Mute / Solo</div>
+                  <div className="min-w-18 text-center text-xs">
+                    Mute / Solo
+                  </div>
                   <div className="min-w-10 text-center text-xs">Pan</div>
                   <div className="min-w-10 text-center text-xs">Volume</div>
                   <div></div>
@@ -812,10 +816,11 @@ function App() {
                   channelControls={channelControls}
                   onChangeChannel={onChangeChannel}
                   selectedSampleIndexes={selectedSampleIndexes}
-                  onChangeChannelSample={handleChannelSampleChange}
-                  playNoteImmediately={(channel: ChannelName) =>
-                    audioEngine.playNote(channel, Tone.now(), 1)
-                  }
+                  onChangeSample={async (channel, sampleIdx) => {
+                    await handleSampleChange(channel, sampleIdx);
+                    playNoteImmediately(channel);
+                  }}
+                  playNoteImmediately={playNoteImmediately}
                 />
               </div>
 

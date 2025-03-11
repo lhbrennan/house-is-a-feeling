@@ -31,7 +31,7 @@ type ChannelControlsProps = {
   ) => void;
   channelNames: ChannelNames;
   selectedSampleIndexes: Record<ChannelName, number>;
-  onChangeChannelSample: (channel: ChannelName, sampleIdx: number) => void;
+  onChangeSample: (channel: ChannelName, sampleIdx: number) => void;
   playNoteImmediately: (channel: ChannelName) => void;
 };
 
@@ -40,7 +40,7 @@ export function ChannelControls({
   onChangeChannel,
   channelNames,
   selectedSampleIndexes,
-  onChangeChannelSample,
+  onChangeSample,
   playNoteImmediately,
 }: ChannelControlsProps) {
   return (
@@ -101,7 +101,7 @@ export function ChannelControls({
 
             <CycleSelect
               options={SAMPLES[channel]}
-              onChange={(newIdx) => onChangeChannelSample(channel, newIdx)}
+              onChange={(newIdx) => onChangeSample(channel, newIdx)}
               selectedSampleIdx={selectedSampleIndexes[channel]}
               color={CYCLE_SELECT_COLORS[idx]}
             />
