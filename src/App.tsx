@@ -735,7 +735,7 @@ function App() {
         </div>
 
         <div className="flex h-full justify-center">
-          <div className="space-y-6 p-4">
+          <div className="space-y-7 p-4">
             <div className="flex items-center justify-between">
               <h1 className="text-foreground text-center font-[Chicle] text-4xl font-bold drop-shadow-lg">
                 House is a Feeling
@@ -753,7 +753,7 @@ function App() {
             </div>
 
             {/* Top Section: Transport and BPM */}
-            <div className="flex flex-wrap items-center space-x-4 pb-4">
+            <div className="flex flex-wrap items-center space-x-4 pb-6">
               <TransportControls
                 bpm={bpm}
                 swing={swing}
@@ -797,16 +797,26 @@ function App() {
 
             {/* Main Section: ChannelControls, Grid, & ChannelFx */}
             <div className="flex">
-              <ChannelControls
-                channelNames={CHANNEL_NAMES}
-                channelControls={channelControls}
-                onChangeChannel={onChangeChannel}
-                selectedSampleIndexes={selectedSampleIndexes}
-                onChangeChannelSample={handleChannelSampleChange}
-                playNoteImmediately={(channel: ChannelName) =>
-                  audioEngine.playNote(channel, Tone.now(), 1)
-                }
-              />
+              <div className="relative ml-4 space-x-4">
+                <div className="absolute top-[-25px] left-0 flex h-6 w-full items-center justify-start gap-2">
+                  <div className="min-w-18 text-center text-xs">Mute / Solo</div>
+                  <div className="min-w-10 text-center text-xs">Pan</div>
+                  <div className="min-w-10 text-center text-xs">Volume</div>
+                  <div></div>
+                  <div></div>
+                </div>
+
+                <ChannelControls
+                  channelNames={CHANNEL_NAMES}
+                  channelControls={channelControls}
+                  onChangeChannel={onChangeChannel}
+                  selectedSampleIndexes={selectedSampleIndexes}
+                  onChangeChannelSample={handleChannelSampleChange}
+                  playNoteImmediately={(channel: ChannelName) =>
+                    audioEngine.playNote(channel, Tone.now(), 1)
+                  }
+                />
+              </div>
 
               <div className="relative">
                 <Ruler
@@ -825,11 +835,19 @@ function App() {
                 />
               </div>
 
-              <ChannelFx
-                channelFx={channelFx}
-                handleChannelFxChange={handleChannelFxChange}
-                setActiveChannelFxDialog={setActiveChannelFxDialog}
-              />
+              <div className="relative ml-4 space-x-4">
+                <div className="absolute top-[-25px] left-0 flex h-6 w-full items-center justify-between">
+                  <div className="text-xs">Delay</div>
+                  <div></div>
+                  <div className="text-xs">Reverb</div>
+                </div>
+
+                <ChannelFx
+                  channelFx={channelFx}
+                  handleChannelFxChange={handleChannelFxChange}
+                  setActiveChannelFxDialog={setActiveChannelFxDialog}
+                />
+              </div>
             </div>
 
             {/* Bottom Section: Pattern controls */}

@@ -91,7 +91,7 @@ export function CycleSelect({
         <button
           onClick={handlePrev}
           disabled={options.length < 2}
-          className="cursor-pointer px-2 py-1 disabled:opacity-50"
+          className="cursor-pointer px-.5 py-1 disabled:opacity-50"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
@@ -153,7 +153,7 @@ export function CycleSelect({
         <button
           onClick={handleNext}
           disabled={options.length < 2}
-          className="cursor-pointer px-2 py-1 disabled:opacity-50"
+          className="cursor-pointer px-.5 py-1 disabled:opacity-50"
         >
           <ChevronRight className="h-4 w-4" />
         </button>
