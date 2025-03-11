@@ -440,6 +440,7 @@ function App() {
     const safeIndex = sampleIdx % SAMPLES[channel].length;
     await audioEngine.setChannelSample(channel, safeIndex);
     setSelectedSampleIndexes((prev) => ({ ...prev, [channel]: safeIndex }));
+    audioEngine.playNote(channel, Tone.now(), 1)
   };
 
   // ──────────────────────────────────────────────────────────────

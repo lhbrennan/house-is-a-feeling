@@ -117,7 +117,6 @@ export function CycleSelect({
                   key={sample}
                   onClick={() => {
                     onChange(idx);
-                    setIsPopoverOpen(false);
                   }}
                   className={cn(
                     "flex cursor-pointer items-center justify-between p-2 hover:bg-gray-100 dark:hover:bg-gray-700",
