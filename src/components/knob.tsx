@@ -1,23 +1,25 @@
 import React, { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
+type KnobPosition = "left" | "center" | "right";
+type ValueVisibility = "hidden" | "visible" | "onHover";
+
 interface KnobProps extends React.HTMLAttributes<HTMLDivElement> {
   value?: number;
-  defaultValue?: number;
   min?: number;
   max?: number;
   step?: number;
   disabled?: boolean;
   onValueChange?: (value: number) => void;
   onValueCommit?: (value: number) => void;
-  // Optional custom styling
   size?: "sm" | "md" | "lg";
   indicatorColor?: string;
   trackColor?: string;
   fillColor?: string;
-  showValue?: boolean;
+  valueVisibility?: ValueVisibility;
   valueFormat?: (value: number) => string;
   label?: string;
+  position?: KnobPosition;
 }
 
 const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
@@ -25,7 +27,6 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
     {
       className,
       value,
-      defaultValue = 0,
       min = 0,
       max = 100,
       step = 1,
@@ -36,20 +37,41 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
       indicatorColor = "bg-primary",
       trackColor = "bg-gray-200",
       fillColor = "bg-primary/30",
-      showValue = false,
+      valueVisibility = "hidden",
       valueFormat = (val) => `${Math.round(val)}%`,
       label,
+      position = "left",
       ...props
     },
     ref,
   ) => {
-    const [localValue, setLocalValue] = useState(
-      value !== undefined ? value : defaultValue,
-    );
+    // Set default value based on position
+    const getInitialValue = () => {
+      if (value !== undefined) return value;
+
+      switch (position) {
+        case "right":
+          return 100;
+        case "center":
+          return 50;
+        case "left":
+        default:
+          return 0;
+      }
+    };
+
+    const [localValue, setLocalValue] = useState(getInitialValue());
+    const [isHovering, setIsHovering] = useState(false);
+
     const knobRef = useRef<HTMLDivElement>(null);
     const isDragging = useRef(false);
     const startY = useRef(0);
     const startValue = useRef(0);
+
+    // The physical range is always from 7 o'clock (210°) to 5 o'clock (150°)
+    // going clockwise, which spans 300 degrees
+    const startAngle = 210; // 7 o'clock
+    const rangeAngle = 300; // Total range in degrees
 
     // Update internal state when prop changes
     useEffect(() => {
@@ -58,18 +80,31 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
       }
     }, [value]);
 
-    // Convert value to rotation angle (7 o'clock = 0%, 5 o'clock = 100%)
-    // 7 o'clock is 210 degrees, 5 o'clock is 150 degrees (crossing zero/360)
+    // Get the default value for reset
+    const getDefaultValue = () => {
+      switch (position) {
+        case "right":
+          return 100;
+        case "center":
+          return 50;
+        case "left":
+        default:
+          return 0;
+      }
+    };
+
+    // Convert value to rotation angle
     const getRotation = (val: number) => {
+      // Map the value to a position on the 300° arc
       const percent = (val - min) / (max - min);
-      return 210 + 300 * percent; // 300 degrees of rotation range
+      return startAngle + percent * rangeAngle;
     };
 
     // Reset to default value
     const resetToDefault = () => {
       if (disabled) return;
 
-      const resetValue = defaultValue;
+      const resetValue = getDefaultValue();
       setLocalValue(resetValue);
 
       if (onValueChange) {
@@ -98,12 +133,12 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
     const getIndicatorHeight = () => {
       switch (size) {
         case "sm":
-          return "h-4"; // Increased from h-3
+          return "h-4";
         case "lg":
-          return "h-6"; // Increased from h-5
+          return "h-6";
         case "md":
         default:
-          return "h-5"; // Increased from h-4
+          return "h-5";
       }
     };
 
@@ -117,18 +152,22 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
 
     // Create a clip path for the fill
     const getClipPath = () => {
-      // If value is at minimum, return empty clip path
-      if (localValue === min) {
-        return "polygon(50% 50%, 50% 50%)";
-      }
-
-      // Calculate percentage
       const percent = (localValue - min) / (max - min);
 
-      // Define angles (7 o'clock = 210 degrees, 5 o'clock = 150 degrees past 0/360)
-      const startAngle = 210; // 7 o'clock position
-      const maxAngle = 300; // Total rotation range
-      const endAngle = startAngle + percent * maxAngle;
+      if (position === "center") {
+        return getCenterFillPath(percent);
+      } else if (position === "right") {
+        return getRightFillPath();
+      } else {
+        return getLeftFillPath(percent);
+      }
+    };
+
+    // Left position fill path (standard, clockwise from 7 o'clock)
+    const getLeftFillPath = (percent: number) => {
+      if (percent === 0) {
+        return "polygon(50% 50%, 50% 50%)";
+      }
 
       // Start building the polygon path
       const points = [];
@@ -136,22 +175,169 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
       // Add center point
       points.push("50% 50%");
 
-      // Calculate the exact point at 7 o'clock (210 degrees)
-      const start = pointOnCircle(startAngle);
+      // Calculate fill angles - fill starts at 7 o'clock (210°)
+      const fillStartAngle = 210;
+      const fillEndAngle = fillStartAngle + percent * rangeAngle;
+
+      // Add start point (7 o'clock)
+      const start = pointOnCircle(fillStartAngle);
       points.push(`${start.x}% ${start.y}%`);
 
-      // Add points along the arc for a smooth curve
-      const numPoints = Math.max(20, Math.floor(percent * 60)); // More points for longer arcs
-
+      // Add points along the arc
+      const numPoints = Math.max(20, Math.floor(rangeAngle / 10)); // One point every 10 degrees
       for (let i = 1; i < numPoints; i++) {
-        const angle = startAngle + (i * (endAngle - startAngle)) / numPoints;
+        const angle =
+          fillStartAngle + (i * (fillEndAngle - fillStartAngle)) / numPoints;
         const point = pointOnCircle(angle);
         points.push(`${point.x}% ${point.y}%`);
       }
 
-      // Add the end point
-      const end = pointOnCircle(endAngle);
+      // Add end point
+      const end = pointOnCircle(fillEndAngle);
       points.push(`${end.x}% ${end.y}%`);
+
+      // Close the path
+      points.push("50% 50%");
+
+      return `polygon(${points.join(", ")})`;
+    };
+
+    // Right position fill path - matching the indicator movement
+    const getRightFillPath = () => {
+      // Get the exact indicator angle
+      const indicatorAngle = getRotation(localValue);
+
+      // Start building the polygon path
+      const points = [];
+
+      // Add center point
+      points.push("50% 50%");
+
+      // For right position, we fill from 5 o'clock (150°) to the indicator position
+      const fillStartAngle = 150; // 5 o'clock
+      const fillEndAngle = indicatorAngle;
+
+      // Add start point (5 o'clock)
+      const start = pointOnCircle(fillStartAngle);
+      points.push(`${start.x}% ${start.y}%`);
+
+      // We need to determine if we should go clockwise or counterclockwise
+      // based on which path is shorter between 5 o'clock and the indicator
+
+      // Check if going clockwise would cross the 0/360 boundary
+      const isCrossingBoundary = fillStartAngle <= 180 && fillEndAngle >= 180;
+
+      // Choose the shortest path
+      if (!isCrossingBoundary) {
+        // Normal case - go counterclockwise from 5 o'clock to indicator
+        const numPoints = Math.max(
+          20,
+          Math.floor(Math.abs(fillEndAngle - fillStartAngle) / 10),
+        );
+        for (let i = 1; i < numPoints; i++) {
+          const t = i / numPoints;
+          const angle = fillStartAngle * (1 - t) + fillEndAngle * t;
+          const point = pointOnCircle(angle);
+          points.push(`${point.x}% ${point.y}%`);
+        }
+      } else {
+        // Special case - go clockwise (the long way) to avoid crossing the boundary
+        const numPoints = Math.max(
+          20,
+          Math.floor((360 - Math.abs(fillEndAngle - fillStartAngle)) / 10),
+        );
+        for (let i = 1; i < numPoints; i++) {
+          const t = i / numPoints;
+          // Going clockwise requires different interpolation
+          let angle;
+          if (fillStartAngle > fillEndAngle) {
+            angle =
+              fillStartAngle + t * (360 - (fillStartAngle - fillEndAngle));
+            if (angle >= 360) angle -= 360;
+          } else {
+            angle =
+              fillStartAngle - t * (360 - (fillEndAngle - fillStartAngle));
+            if (angle < 0) angle += 360;
+          }
+          const point = pointOnCircle(angle);
+          points.push(`${point.x}% ${point.y}%`);
+        }
+      }
+
+      // Add end point (indicator position)
+      const end = pointOnCircle(fillEndAngle);
+      points.push(`${end.x}% ${end.y}%`);
+
+      // Close the path
+      points.push("50% 50%");
+
+      return `polygon(${points.join(", ")})`;
+    };
+
+    // Center position fill path - matching pointer exactly for bi-directional fill
+    const getCenterFillPath = (percent: number) => {
+      if (percent === 0.5) {
+        // At exactly 50%, no fill
+        return "polygon(50% 50%, 50% 50%)";
+      }
+
+      // Start building the polygon path
+      const points = [];
+
+      // Add center point
+      points.push("50% 50%");
+
+      // The key insight: we need to map the 0-100% value range to the exact same
+      // 210° to 510° range that the indicator uses
+      const indicatorAngle = getRotation(localValue);
+
+      if (percent < 0.5) {
+        // For less than 50%: Fill from midpoint (360°) counterclockwise to the current position
+        const midpointAngle = 360; // This is our center/neutral position
+
+        // Add midpoint as starting point
+        const midpoint = pointOnCircle(midpointAngle);
+        points.push(`${midpoint.x}% ${midpoint.y}%`);
+
+        // Add points along the arc from midpoint to indicator position
+        const numPoints = Math.max(
+          10,
+          Math.floor(Math.abs(midpointAngle - indicatorAngle) / 5),
+        );
+        for (let i = 1; i < numPoints; i++) {
+          const angle =
+            midpointAngle - (i * (midpointAngle - indicatorAngle)) / numPoints;
+          const point = pointOnCircle(angle);
+          points.push(`${point.x}% ${point.y}%`);
+        }
+
+        // Add indicator position
+        const indicator = pointOnCircle(indicatorAngle);
+        points.push(`${indicator.x}% ${indicator.y}%`);
+      } else {
+        // For more than 50%: Fill from midpoint (360°) clockwise to the current position
+        const midpointAngle = 360; // This is our center/neutral position
+
+        // Add midpoint as starting point
+        const midpoint = pointOnCircle(midpointAngle);
+        points.push(`${midpoint.x}% ${midpoint.y}%`);
+
+        // Add points along the arc from midpoint to indicator position
+        const numPoints = Math.max(
+          10,
+          Math.floor(Math.abs(indicatorAngle - midpointAngle) / 5),
+        );
+        for (let i = 1; i < numPoints; i++) {
+          const angle =
+            midpointAngle + (i * (indicatorAngle - midpointAngle)) / numPoints;
+          const point = pointOnCircle(angle);
+          points.push(`${point.x}% ${point.y}%`);
+        }
+
+        // Add indicator position
+        const indicator = pointOnCircle(indicatorAngle);
+        points.push(`${indicator.x}% ${indicator.y}%`);
+      }
 
       // Close back to center
       points.push("50% 50%");
@@ -167,10 +353,12 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
 
       document.body.style.cursor = "grabbing";
 
+      // Set dragging state to true and ensure the value is shown when dragging
+      isDragging.current = true;
+
       // Capture start position and value
       startY.current = e.clientY;
       startValue.current = localValue;
-      isDragging.current = true;
 
       // Add event listeners to document (not window)
       document.addEventListener("mousemove", handleMouseMove);
@@ -186,9 +374,10 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
       // Calculate vertical distance moved
       const deltaY = startY.current - e.clientY;
 
-      // Calculate how much to change the value (pixels to value)
-      // Higher number = more rotation per pixel of movement
-      const sensitivity = 0.25; // Lower value for more precise control with larger knobs
+      // Standard sensitivity
+      const sensitivity = 0.25;
+
+      // Calculate value change - consistent across all positions
       const valueChange = deltaY * sensitivity;
 
       // Calculate new value based on starting value + change
@@ -239,14 +428,28 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
       e.preventDefault(); // Prevent the context menu from appearing
     };
 
+    // Handle hover events
+    const handleMouseEnter = () => {
+      setIsHovering(true);
+    };
+
+    const handleMouseLeave = () => {
+      if (!isDragging.current) {
+        setIsHovering(false);
+      }
+    };
+
     // Handle touch events
     const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
       if (disabled) return;
 
+      // Show the value while touching (like hovering)
+      setIsHovering(true);
+      isDragging.current = true;
+
       // Capture start position and value
       startY.current = e.touches[0].clientY;
       startValue.current = localValue;
-      isDragging.current = true;
 
       // Add event listeners to document
       document.addEventListener("touchmove", handleTouchMove, {
@@ -295,6 +498,7 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
     const handleTouchEnd = () => {
       if (isDragging.current) {
         isDragging.current = false;
+        setIsHovering(false);
 
         // Remove event listeners
         document.removeEventListener("touchmove", handleTouchMove);
@@ -319,78 +523,105 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
       };
     }, []);
 
+    // Determine if we should show the value
+    const shouldShowValue =
+      valueVisibility === "visible" ||
+      (valueVisibility === "onHover" && (isHovering || isDragging.current));
+
     return (
       <div
-        className={cn("flex flex-col items-center gap-2", className)}
+        className={cn("flex flex-col items-center", className)}
         ref={ref}
         {...props}
       >
-        {label && <div className="text-muted-foreground text-xs">{label}</div>}
-        <div
-          ref={knobRef}
-          className={cn(
-            "bg-card relative rounded-full border shadow-sm select-none",
-            getSizeClass(),
-            disabled
-              ? "cursor-not-allowed opacity-50"
-              : "cursor-grab active:cursor-grabbing",
-          )}
-          onMouseDown={handleMouseDown}
-          onDoubleClick={handleDoubleClick}
-          onContextMenu={handleContextMenu}
-          onTouchStart={handleTouchStart}
-          style={{
-            touchAction: "none", // Prevent scroll on touch devices
-          }}
-          title="Double-click or right-click to reset"
-        >
-          {/* Track */}
-          <div className={cn("absolute inset-0.5 rounded-full", trackColor)} />
-
-          {/* Fill using clip-path */}
-          <div
-            className={cn("absolute inset-0.5 rounded-full", fillColor)}
-            style={{
-              clipPath: getClipPath(),
-            }}
-          />
-
-          {/* Knob Indicator */}
-          <div
-            className={cn(
-              "absolute w-0.5 rounded-full",
-              indicatorColor,
-              getIndicatorHeight(),
-            )}
-            style={{
-              left: "50%",
-              bottom: "50%", // Changed from top positioning to bottom positioning
-              transformOrigin: "center bottom", // Changed transform origin to bottom center
-              transform: `translateX(-50%) rotate(${getRotation(localValue)}deg)`,
-            }}
-          />
-
-          {/* Center dot */}
-          <div
-            className={cn(
-              "bg-card absolute rounded-full border shadow-sm",
-              size === "sm"
-                ? "h-1.5 w-1.5"
-                : size === "lg"
-                  ? "h-2.5 w-2.5"
-                  : "h-2 w-2",
-            )}
-            style={{
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-            }}
-          />
-        </div>
-
-        {showValue && (
-          <div className="text-xs font-medium">{valueFormat(localValue)}</div>
+        {label && (
+          <div className="text-muted-foreground mb-1 text-xs">{label}</div>
         )}
+        <div className="relative">
+          <div
+            ref={knobRef}
+            className={cn(
+              "bg-card relative rounded-full border shadow-sm select-none",
+              getSizeClass(),
+              disabled
+                ? "cursor-not-allowed opacity-50"
+                : "cursor-grab active:cursor-grabbing",
+            )}
+            onMouseDown={handleMouseDown}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            onDoubleClick={handleDoubleClick}
+            onContextMenu={handleContextMenu}
+            onTouchStart={handleTouchStart}
+            style={{
+              touchAction: "none", // Prevent scroll on touch devices
+            }}
+            title="Double-click or right-click to reset"
+          >
+            {/* Track */}
+            <div
+              className={cn("absolute inset-0.5 rounded-full", trackColor)}
+            />
+
+            {/* Fill using clip-path */}
+            <div
+              className={cn("absolute inset-0.5 rounded-full", fillColor)}
+              style={{
+                clipPath: getClipPath(),
+              }}
+            />
+
+            {/* Knob Indicator */}
+            <div
+              className={cn(
+                "absolute w-0.5 rounded-full",
+                indicatorColor,
+                getIndicatorHeight(),
+              )}
+              style={{
+                left: "50%",
+                bottom: "50%",
+                transformOrigin: "center bottom",
+                transform: `translateX(-50%) rotate(${getRotation(localValue)}deg)`,
+              }}
+            />
+
+            {/* Center dot */}
+            <div
+              className={cn(
+                "bg-card absolute rounded-full border shadow-sm",
+                size === "sm"
+                  ? "h-1.5 w-1.5"
+                  : size === "lg"
+                    ? "h-2.5 w-2.5"
+                    : "h-2 w-2",
+              )}
+              style={{
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+              }}
+            />
+          </div>
+
+          {/* Value label positioned right above the knob */}
+          {shouldShowValue && (
+            <div
+              className={cn(
+                "absolute rounded bg-white/90 px-1 py-0 text-[10px] font-medium dark:bg-black/90",
+                "transition-opacity duration-150",
+                disabled ? "opacity-50" : "opacity-100",
+              )}
+              style={{
+                top: "-1.25rem",
+                left: "50%",
+                transform: "translateX(-50%)",
+              }}
+            >
+              {valueFormat(localValue)}
+            </div>
+          )}
+        </div>
       </div>
     );
   },
