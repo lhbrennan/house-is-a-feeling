@@ -78,9 +78,9 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
       onValueChange,
       onValueCommit,
       size = "md",
-      indicatorColor = "bg-primary",
-      trackColor = "bg-gray-200",
-      fillColor = "bg-primary/30",
+      indicatorColor,
+      trackColor,
+      fillColor,
       valueVisibility = "hidden",
       valueFormat = (val) => `${Math.round(val)}%`,
       label,
@@ -564,6 +564,11 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
       valueVisibility === "visible" ||
       (valueVisibility === "onHover" && (isHovering || isDragging.current));
 
+    // Use shadcn default styles if no custom colors provided
+    const defaultIndicatorColor = "bg-primary";
+    const defaultTrackColor = "bg-secondary";
+    const defaultFillColor = "bg-primary/30";
+
     return (
       <div
         className={cn("flex flex-col items-center", className)}
@@ -577,7 +582,8 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
           <div
             ref={knobRef}
             className={cn(
-              "bg-card relative rounded-full border shadow-sm select-none",
+              "relative rounded-full border shadow-sm select-none",
+              "bg-background",
               getSizeClass(),
               disabled
                 ? "cursor-not-allowed opacity-50"
@@ -596,12 +602,18 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
           >
             {/* Track */}
             <div
-              className={cn("absolute inset-0.5 rounded-full", trackColor)}
+              className={cn(
+                "absolute inset-0.5 rounded-full",
+                trackColor || defaultTrackColor,
+              )}
             />
 
             {/* Fill using clip-path */}
             <div
-              className={cn("absolute inset-0.5 rounded-full", fillColor)}
+              className={cn(
+                "absolute inset-0.5 rounded-full",
+                fillColor || defaultFillColor,
+              )}
               style={{
                 clipPath: getClipPath(),
               }}
@@ -611,7 +623,7 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
             <div
               className={cn(
                 "absolute w-0.5 rounded-full",
-                indicatorColor,
+                indicatorColor || defaultIndicatorColor,
                 getIndicatorHeight(),
               )}
               style={{
@@ -625,7 +637,7 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
             {/* Center dot */}
             <div
               className={cn(
-                "bg-card absolute rounded-full border shadow-sm",
+                "bg-background absolute rounded-full border shadow-sm",
                 size === "sm"
                   ? "h-1.5 w-1.5"
                   : size === "lg"
@@ -644,7 +656,8 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
           {shouldShowValue && (
             <div
               className={cn(
-                "absolute rounded bg-white/90 px-1 py-0 text-[10px] font-medium dark:bg-black/90",
+                "absolute rounded px-1 py-0 text-[10px] font-medium",
+                "bg-popover text-popover-foreground",
                 "transition-opacity duration-150",
                 disabled ? "opacity-50" : "opacity-100",
               )}
