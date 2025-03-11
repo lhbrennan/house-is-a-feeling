@@ -12,9 +12,6 @@ export const CycleSelect: Story = () => {
       options={options}
       onChange={setSelected}
       selectedSampleIdx={selected}
-      onDotClick={() => {
-        console.log("Dot clicked");
-      }}
     />
   );
 };

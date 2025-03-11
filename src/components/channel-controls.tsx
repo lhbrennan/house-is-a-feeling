@@ -103,9 +103,6 @@ export function ChannelControls({
               options={SAMPLES[channel]}
               onChange={(newIdx) => onChangeChannelSample(channel, newIdx)}
               selectedSampleIdx={selectedSampleIndexes[channel]}
-              onDotClick={() => {
-                playNoteImmediately(channel);
-              }}
               color={CYCLE_SELECT_COLORS[idx]}
             />
           </div>

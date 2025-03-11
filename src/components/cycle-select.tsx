@@ -26,7 +26,6 @@ type CycleSelectProps = {
   onChange: (newSampleIdx: number) => void;
   color?: string;
   dotSize?: number;
-  onDotClick?: () => void;
   className?: string;
 };
 
@@ -36,7 +35,6 @@ export function CycleSelect({
   onChange,
   color = "black",
   dotSize = 16,
-  onDotClick,
   className,
 }: CycleSelectProps) {
   const selectedValue = options[selectedSampleIdx];
@@ -59,18 +57,6 @@ export function CycleSelect({
     onChange(newIndex);
   };
 
-  // Left click triggers both onDotClick and opens the popover.
-  const handleLeftClick = () => {
-    onDotClick?.();
-    setIsPopoverOpen(true);
-  };
-
-  // Right click only triggers onDotClick (without opening the popover).
-  const handleRightClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    onDotClick?.();
-  };
-
   // Framer Motion animation variants for the dot.
   const variants = {
     initial: (direction: number) => ({
@@ -91,7 +77,7 @@ export function CycleSelect({
         <button
           onClick={handlePrev}
           disabled={options.length < 2}
-          className="cursor-pointer px-.5 py-1 disabled:opacity-50"
+          className="px-.5 cursor-pointer py-1 disabled:opacity-50"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
@@ -100,8 +86,7 @@ export function CycleSelect({
         <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
           <PopoverTrigger asChild>
             <div
-              onClick={handleLeftClick}
-              onContextMenu={handleRightClick}
+              onClick={() => setIsPopoverOpen(true)}
               className="relative h-8 w-8 cursor-pointer overflow-hidden"
             >
               <div className="absolute inset-0 flex items-center justify-center">
@@ -125,7 +110,7 @@ export function CycleSelect({
               </div>
             </div>
           </PopoverTrigger>
-          <PopoverContent className="w-48">
+          <PopoverContent className="w-64">
             <div className="max-h-60 overflow-auto">
               {options.map((sample, idx) => (
                 <div
@@ -135,13 +120,14 @@ export function CycleSelect({
                     setIsPopoverOpen(false);
                   }}
                   className={cn(
-                    "flex cursor-pointer items-center justify-between p-2 hover:bg-gray-200",
-                    selectedValue === sample && "bg-gray-200 font-semibold",
+                    "flex cursor-pointer items-center justify-between p-2 hover:bg-gray-100 dark:hover:bg-gray-700",
+                    selectedValue === sample &&
+                      "bg-gray-100 font-semibold dark:bg-gray-700 dark:text-white",
                   )}
                 >
                   <span>{sample}</span>
                   {selectedValue === sample && (
-                    <ArrowLeft className="h-4 w-4 text-gray-500" />
+                    <ArrowLeft className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                   )}
                 </div>
               ))}
@@ -153,7 +139,7 @@ export function CycleSelect({
         <button
           onClick={handleNext}
           disabled={options.length < 2}
-          className="cursor-pointer px-.5 py-1 disabled:opacity-50"
+          className="px-.5 cursor-pointer py-1 disabled:opacity-50"
         >
           <ChevronRight className="h-4 w-4" />
         </button>
