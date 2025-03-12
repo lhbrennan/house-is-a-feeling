@@ -91,6 +91,7 @@ export function ChannelControls({
               min={0}
               max={1}
               step={0.01}
+              position="right"
             />
 
             <CycleSelect
