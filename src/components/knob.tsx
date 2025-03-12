@@ -238,7 +238,7 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
     };
 
     // Right position fill path - matching the indicator movement
-    const getRightFillPath = (percent: number) => {
+    const getRightFillPath = () => {
       // Get the exact indicator angle
       const indicatorAngle = getRotation(localValue);
 
@@ -323,7 +323,6 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
       points.push("50% 50%");
 
       // The center position is based on the middle of the range
-      const midpoint = min + (max - min) / 2;
       const midpointPercent = 0.5;
       const midpointAngle = 360; // This is our center/neutral position
 
