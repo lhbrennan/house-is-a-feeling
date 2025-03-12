@@ -636,14 +636,11 @@ function App() {
             {/* Main Section: ChannelControls, Grid, & ChannelFx */}
             <div className="flex">
               <div className="relative ml-4 space-x-4">
-                <div className="absolute top-[-25px] left-0 flex h-6 w-full items-center justify-start gap-2">
-                  <div className="min-w-18 text-center text-xs">
-                    Mute / Solo
-                  </div>
-                  <div className="min-w-10 text-center text-xs">Pan</div>
-                  <div className="min-w-10 text-center text-xs">Volume</div>
-                  <div></div>
-                  <div></div>
+                <div className="absolute top-[-25px] left-0 flex h-6 w-full items-start justify-start gap-3">
+                  <div className="w-18 text-center text-xs">Mute / Solo</div>
+                  <div className="w-10 text-center text-xs">Pan</div>
+                  <div className="w-10 text-center text-xs">Volume</div>
+                  <div className="text-center text-xs grow">Sample Selection</div>
                 </div>
 
                 <ChannelControls
@@ -677,7 +674,7 @@ function App() {
               </div>
 
               <div className="relative ml-4 space-x-4">
-                <div className="absolute top-[-25px] left-0 flex h-6 w-full items-center justify-between">
+                <div className="absolute top-[-25px] left-0 flex h-6 w-full items-start justify-between">
                   <div className="text-xs">Delay</div>
                   <div></div>
                   <div className="text-xs">Reverb</div>

@@ -50,7 +50,7 @@ export function ChannelControls({
         return (
           <div
             key={channel}
-            className="flex h-10 w-fit items-center gap-2 rounded pr-2"
+            className="flex h-10 w-fit items-center gap-3 rounded pr-2"
           >
             <div className="flex items-center">
               <Toggle
@@ -93,16 +93,16 @@ export function ChannelControls({
               step={0.01}
             />
 
-            <ChannelNameButton
-              channelName={CHANNEL_ABREVIATIONS[channel]}
-              onClick={() => playNoteImmediately(channel)}
-              color={CYCLE_SELECT_COLORS[idx]}
-            />
-
             <CycleSelect
               options={SAMPLES[channel]}
               onChange={(newIdx) => onChangeSample(channel, newIdx)}
               selectedSampleIdx={selectedSampleIndexes[channel]}
+              color={CYCLE_SELECT_COLORS[idx]}
+            />
+
+            <ChannelNameButton
+              channelName={CHANNEL_ABREVIATIONS[channel]}
+              onClick={() => playNoteImmediately(channel)}
               color={CYCLE_SELECT_COLORS[idx]}
             />
           </div>

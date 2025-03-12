@@ -24,7 +24,7 @@ const ChannelNameButton: React.FC<ChannelNameButtonProps> = ({
     <button
       onClick={onClick}
       onMouseDown={handleMouseDown}
-      className="flex h-11 min-h-11 w-11 min-w-11 items-center justify-center rounded-full border-2 bg-white text-[6px] leading-tight transition-all duration-75 focus:outline-none active:scale-95 dark:bg-gray-800"
+      className="flex h-11 min-h-11 w-11 min-w-11 items-center justify-center rounded-full border-2 bg-white text-[6px] leading-tight transition-all duration-75 hover:cursor-pointer focus:outline-none active:scale-95 dark:bg-gray-800"
       style={{ borderColor: color }}
       aria-label={`Play ${channelName} sample`}
     >
