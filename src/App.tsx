@@ -508,6 +508,9 @@ function App() {
     });
   };
 
+  // ──────────────────────────────────────────────────────────────
+  // Session Storage
+  // ──────────────────────────────────────────────────────────────
   const {
     currentSessionId,
     currentSessionName,
@@ -545,6 +548,17 @@ function App() {
     applyBusCompressorSettings,
     audioEngine,
   });
+
+  // Function to handle Save button click
+  const handleSaveButtonClick = () => {
+    // If this is a new session (no ID), show the Save As dialog
+    if (currentSessionId === null) {
+      setIsSaveAsDialogOpen(true);
+    } else {
+      // Otherwise, perform a regular save
+      saveSession();
+    }
+  };
 
   // ──────────────────────────────────────────────────────────────
   // Render
@@ -598,22 +612,24 @@ function App() {
 
                 <Button
                   variant="outline"
-                  onClick={saveSession}
-                  disabled={!isSessionModified && currentSessionId !== null}
+                  onClick={handleSaveButtonClick}
                   className="flex items-center"
                 >
                   <Save className="mr-2 h-4 w-4" />
                   Save
                 </Button>
 
-                <Button
-                  variant="outline"
-                  onClick={() => setIsSaveAsDialogOpen(true)}
-                  className="flex items-center"
-                >
-                  <FilePlus2 className="mr-2 h-4 w-4" />
-                  Save As
-                </Button>
+                {/* Only show Save As when we already have a session ID */}
+                {currentSessionId !== null && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsSaveAsDialogOpen(true)}
+                    className="flex items-center"
+                  >
+                    <FilePlus2 className="mr-2 h-4 w-4" />
+                    Save As
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -757,7 +773,9 @@ function App() {
             initialName={
               isSessionModified
                 ? currentSessionName
-                : `${currentSessionName} (Copy)`
+                : currentSessionName
+                  ? `${currentSessionName} (Copy)`
+                  : "New Session"
             }
           />
         </div>
