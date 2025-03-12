@@ -115,7 +115,10 @@ export function SessionManagerDialog({
                 <div
                   key={session.id}
                   className="hover:bg-accent/50 group relative cursor-pointer p-3"
-                  onClick={() => onSessionSelect(session)}
+                  onClick={() => {
+                    onSessionSelect(session);
+                    onClose();
+                  }}
                 >
                   {renamingSessionId === session.id ? (
                     <form
