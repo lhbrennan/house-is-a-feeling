@@ -89,19 +89,23 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
     },
     ref,
   ) => {
-    // Set default value based on position
-    const getInitialValue = () => {
-      if (value !== undefined) return value;
-
+    // Get the default value based on position for both initial value and reset
+    const getDefaultValue = () => {
       switch (position) {
         case "right":
-          return 100;
+          return max;
         case "center":
-          return 50;
+          return min + (max - min) / 2;
         case "left":
         default:
-          return 0;
+          return min;
       }
+    };
+
+    // Set initial value, using the provided value prop if defined, otherwise use default
+    const getInitialValue = () => {
+      if (value !== undefined) return value;
+      return getDefaultValue();
     };
 
     const [localValue, setLocalValue] = useState(getInitialValue());
@@ -123,19 +127,6 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
         setLocalValue(value);
       }
     }, [value]);
-
-    // Get the default value for reset
-    const getDefaultValue = () => {
-      switch (position) {
-        case "right":
-          return 100;
-        case "center":
-          return 50;
-        case "left":
-        default:
-          return 0;
-      }
-    };
 
     // Convert value to rotation angle
     const getRotation = (val: number) => {
@@ -247,7 +238,7 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
     };
 
     // Right position fill path - matching the indicator movement
-    const getRightFillPath = () => {
+    const getRightFillPath = (percent: number) => {
       // Get the exact indicator angle
       const indicatorAngle = getRotation(localValue);
 
@@ -331,55 +322,58 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
       // Add center point
       points.push("50% 50%");
 
-      // The key insight: we need to map the 0-100% value range to the exact same
-      // 210° to 510° range that the indicator uses
-      const indicatorAngle = getRotation(localValue);
+      // The center position is based on the middle of the range
+      const midpoint = min + (max - min) / 2;
+      const midpointPercent = 0.5;
+      const midpointAngle = 360; // This is our center/neutral position
 
-      if (percent < 0.5) {
+      if (percent < midpointPercent) {
         // For less than 50%: Fill from midpoint (360°) counterclockwise to the current position
-        const midpointAngle = 360; // This is our center/neutral position
-
         // Add midpoint as starting point
-        const midpoint = pointOnCircle(midpointAngle);
-        points.push(`${midpoint.x}% ${midpoint.y}%`);
+        const midpointPoint = pointOnCircle(midpointAngle);
+        points.push(`${midpointPoint.x}% ${midpointPoint.y}%`);
 
-        // Add points along the arc from midpoint to indicator position
+        // Calculate the angle at the current percentage
+        const currentAngle = startAngle + percent * rangeAngle;
+
+        // Add points along the arc from midpoint to current angle
         const numPoints = Math.max(
           10,
-          Math.floor(Math.abs(midpointAngle - indicatorAngle) / 5),
+          Math.floor(Math.abs(midpointAngle - currentAngle) / 5),
         );
         for (let i = 1; i < numPoints; i++) {
-          const angle =
-            midpointAngle - (i * (midpointAngle - indicatorAngle)) / numPoints;
+          const t = i / numPoints;
+          const angle = midpointAngle - t * (midpointAngle - currentAngle);
           const point = pointOnCircle(angle);
           points.push(`${point.x}% ${point.y}%`);
         }
 
         // Add indicator position
-        const indicator = pointOnCircle(indicatorAngle);
+        const indicator = pointOnCircle(currentAngle);
         points.push(`${indicator.x}% ${indicator.y}%`);
       } else {
         // For more than 50%: Fill from midpoint (360°) clockwise to the current position
-        const midpointAngle = 360; // This is our center/neutral position
-
         // Add midpoint as starting point
-        const midpoint = pointOnCircle(midpointAngle);
-        points.push(`${midpoint.x}% ${midpoint.y}%`);
+        const midpointPoint = pointOnCircle(midpointAngle);
+        points.push(`${midpointPoint.x}% ${midpointPoint.y}%`);
 
-        // Add points along the arc from midpoint to indicator position
+        // Calculate the angle at the current percentage
+        const currentAngle = startAngle + percent * rangeAngle;
+
+        // Add points along the arc from midpoint to current angle
         const numPoints = Math.max(
           10,
-          Math.floor(Math.abs(indicatorAngle - midpointAngle) / 5),
+          Math.floor(Math.abs(currentAngle - midpointAngle) / 5),
         );
         for (let i = 1; i < numPoints; i++) {
-          const angle =
-            midpointAngle + (i * (indicatorAngle - midpointAngle)) / numPoints;
+          const t = i / numPoints;
+          const angle = midpointAngle + t * (currentAngle - midpointAngle);
           const point = pointOnCircle(angle);
           points.push(`${point.x}% ${point.y}%`);
         }
 
         // Add indicator position
-        const indicator = pointOnCircle(indicatorAngle);
+        const indicator = pointOnCircle(currentAngle);
         points.push(`${indicator.x}% ${indicator.y}%`);
       }
 
