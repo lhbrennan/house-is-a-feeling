@@ -128,7 +128,7 @@ function App() {
   const [isGlobalReverbDialogOpen, setIsGlobalReverbDialogOpen] =
     useState(false);
 
-  const { patterns, patternsRef, setPatterns, toggleCell, shiftGrid } =
+  const { patterns, getLatestPatterns, setPatterns, toggleCell, shiftGrid } =
     useGrid(NUM_CHANNELS);
 
   // Playback references
@@ -224,7 +224,7 @@ function App() {
         activePattern = currentPatternRef.current;
       }
 
-      const patternGrid = patternsRef.current[activePattern];
+      const patternGrid = getLatestPatterns()[activePattern];
       patternGrid.forEach((row, channelIndex) => {
         const padVelocity = row[step];
         if (padVelocity > 0) {

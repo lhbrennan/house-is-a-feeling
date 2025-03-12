@@ -24,10 +24,12 @@ export function useGrid(numChannels: number) {
     D: createEmptyGrid(numChannels, 16),
   });
 
+  // Provide access to the latest patterns for closures that would otherwise capture stale state values
   const patternsRef = useRef(patterns);
   useEffect(() => {
     patternsRef.current = patterns;
   }, [patterns]);
+  const getLatestPatterns = () => patternsRef.current;
 
   const toggleCell = (
     pattern: PatternId,
@@ -42,10 +44,7 @@ export function useGrid(numChannels: number) {
     });
   };
 
-  const shiftGrid = (
-    pattern: PatternId,
-    direction: "left" | "right",
-  ) => {
+  const shiftGrid = (pattern: PatternId, direction: "left" | "right") => {
     setPatterns((prev) => {
       const next = { ...prev };
       const clonedPattern = next[pattern].map((row) => [...row]);
@@ -64,7 +63,7 @@ export function useGrid(numChannels: number) {
 
   return {
     patterns,
-    patternsRef,
+    getLatestPatterns,
     setPatterns,
     toggleCell,
     shiftGrid,
