@@ -10,12 +10,6 @@ import { ChannelControls } from "@/components/channel-controls";
 import { ChannelFxDialog } from "@/components/channel-fx-dialog";
 import { SessionManagerDialog } from "@/components/session-manager-dialog";
 import { SaveSessionDialog } from "@/components/save-session-dialog";
-import {
-  StoredSession,
-  saveSession,
-  saveAsNewSession,
-  getSessionById,
-} from "@/services/session-storage";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ChannelFx } from "@/components/channel-fx";
 import { GlobalFxDialog } from "@/components/global-fx-dialog";
@@ -29,6 +23,7 @@ import type {
   ChannelControlsType,
 } from "@/types";
 import { useGrid } from "@/hooks/use-grid";
+import { useSessionStorage } from "@/hooks/use-session-storage";
 import { TransportControls } from "@/components/transport-controls";
 import { useAudioEngine } from "@/hooks/use-audio-engine";
 import { PatternChain } from "@/components/pattern-chain";
@@ -125,11 +120,6 @@ function App() {
     initialSelectedSampleIndexes,
   );
 
-  // Session Storage States
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const [currentSessionName, setCurrentSessionName] = useState<string>("");
-  const [isSessionModified, setIsSessionModified] = useState(false);
-
   // Dialog states
   const [isLoadDialogOpen, setIsLoadDialogOpen] = useState(false);
   const [isSaveAsDialogOpen, setIsSaveAsDialogOpen] = useState(false);
@@ -149,7 +139,6 @@ function App() {
   // We store swing in a ref so the loop callback can see it
   const swingRef = useRef(swing);
   const currentPatternRef = useRef<PatternId>(currentPattern);
-  const originalSessionRef = useRef<string | null>(null);
 
   useEffect(() => {
     swingRef.current = swing;
@@ -194,52 +183,8 @@ function App() {
   }, [patternChain]);
 
   // ──────────────────────────────────────────────────────────────
-  // Track modifications to all session-related state
+  // Track which measure is playing for UI highlighting
   // ──────────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!currentSessionId) {
-      return;
-    }
-
-    // Get the current session from storage to compare with current state
-    const storedSession = getSessionById(currentSessionId);
-    if (!storedSession) return;
-
-    const isModified =
-      JSON.stringify(patterns) !== JSON.stringify(storedSession.patterns) ||
-      bpm !== storedSession.bpm ||
-      swing !== storedSession.swing ||
-      JSON.stringify(channelControls) !==
-        JSON.stringify(storedSession.channelControls) ||
-      JSON.stringify(channelFx) !== JSON.stringify(storedSession.channelFx) ||
-      JSON.stringify(globalReverbSettings) !==
-        JSON.stringify(storedSession.globalReverbSettings) ||
-      JSON.stringify(busCompressorSettings) !==
-        JSON.stringify(storedSession.busCompressorSettings) ||
-      chainEnabled !== storedSession.chainEnabled ||
-      chainLength !== storedSession.chainLength ||
-      JSON.stringify(patternChain) !==
-        JSON.stringify(storedSession.patternChain) ||
-      JSON.stringify(selectedSampleIndexes) !==
-        JSON.stringify(storedSession.selectedSampleIndexes);
-
-    setIsSessionModified(isModified);
-  }, [
-    currentSessionId,
-    patterns,
-    bpm,
-    swing,
-    channelControls,
-    channelFx,
-    globalReverbSettings,
-    busCompressorSettings,
-    chainEnabled,
-    chainLength,
-    patternChain,
-    selectedSampleIndexes,
-  ]);
-
-  // We'll track which measure is playing for UI highlight
   const measureCounterRef = useRef(0);
   const [chainMeasure, setChainMeasure] = useState(0);
 
@@ -563,169 +508,43 @@ function App() {
     });
   };
 
-  // ──────────────────────────────────────────────────────────────
-  // Pattern Storage Handlers
-  // ──────────────────────────────────────────────────────────────
-  const handleOpenLoadDialog = () => {
-    setIsLoadDialogOpen(true);
-  };
-
-  const handleSessionLoad = (storedSession: StoredSession) => {
-    // Load the pattern grid data
-    setPatterns(storedSession.patterns);
-
-    // Update the current pattern ID and name
-    setCurrentSessionId(storedSession.id);
-    setCurrentSessionName(storedSession.name);
-
-    // Load additional settings if they exist
-    if (storedSession.bpm) {
-      setBpm(storedSession.bpm);
-      audioEngine.setBPM(storedSession.bpm);
-    }
-
-    if (storedSession.swing !== undefined) {
-      setSwing(storedSession.swing);
-    }
-
-    // Load channel controls
-    if (
-      storedSession.channelControls &&
-      Object.keys(storedSession.channelControls).length > 0
-    ) {
-      setChannelControls(storedSession.channelControls);
-      applyAllChannelControls(storedSession.channelControls);
-    }
-
-    // Load channel FX
-    if (
-      storedSession.channelFx &&
-      Object.keys(storedSession.channelFx).length > 0
-    ) {
-      setChannelFx(storedSession.channelFx);
-      applyAllChannelFx(storedSession.channelFx);
-    }
-
-    // Load global reverb settings
-    if (storedSession.globalReverbSettings) {
-      setGlobalReverbSettings(storedSession.globalReverbSettings);
-      applyGlobalReverbSettings(storedSession.globalReverbSettings);
-    }
-
-    // Load bus compressor settings
-    if (storedSession.busCompressorSettings) {
-      setBusCompressorSettings(storedSession.busCompressorSettings);
-      applyBusCompressorSettings(storedSession.busCompressorSettings);
-    }
-
-    // Load pattern chain settings
-    if (storedSession.chainEnabled !== undefined) {
-      setChainEnabled(storedSession.chainEnabled);
-    }
-
-    if (storedSession.chainLength) {
-      setChainLength(storedSession.chainLength);
-    }
-
-    if (storedSession.patternChain && storedSession.patternChain.length > 0) {
-      setPatternChain(storedSession.patternChain);
-    }
-
-    // Load sample selections
-    if (
-      storedSession.selectedSampleIndexes &&
-      Object.keys(storedSession.selectedSampleIndexes).length > 0
-    ) {
-      // Apply the sample changes asynchronously
-      Object.entries(storedSession.selectedSampleIndexes).forEach(
-        ([channel, sampleIdx]) => {
-          handleSampleChange(channel as ChannelName, sampleIdx);
-        },
-      );
-
-      // Update state
-      setSelectedSampleIndexes(storedSession.selectedSampleIndexes);
-    }
-
-    // Create a snapshot of the loaded session
-    const sessionSnapshot = JSON.stringify(storedSession.patterns);
-
-    // Store the snapshot
-    originalSessionRef.current = sessionSnapshot;
-
-    // Reset modification state
-    setIsSessionModified(false);
-  };
-
-  const handleSaveSession = () => {
-    if (!currentSessionId) {
-      // No existing pattern, open Save As dialog
-      setIsSaveAsDialogOpen(true);
-      return;
-    }
-
-    const sessionToSave: StoredSession = {
-      id: currentSessionId,
-      name: currentSessionName,
-      patterns: patterns,
-      bpm: bpm,
-      swing: swing,
-      channelControls: channelControls,
-      channelFx: channelFx,
-      globalReverbSettings: globalReverbSettings,
-      busCompressorSettings: busCompressorSettings,
-      chainEnabled: chainEnabled,
-      chainLength: chainLength,
-      patternChain: patternChain,
-      selectedSampleIndexes: selectedSampleIndexes,
-      createdAt: "",
-      updatedAt: "",
-    };
-
-    saveSession(sessionToSave);
-    setIsSessionModified(false);
-  };
-
-  const handleSessionRename = (session: StoredSession, newName: string) => {
-    // If renaming the current session, update the name in state
-    if (session.id === currentSessionId) {
-      setCurrentSessionName(newName);
-    }
-
-    // Update the pattern in storage
-    const updatedSession = {
-      ...session,
-      name: newName,
-    };
-
-    saveSession(updatedSession);
-  };
-
-  const handleSaveAsSession = (name: string) => {
-    const sessionToSave = {
-      name: name,
-      patterns: patterns,
-      bpm: bpm,
-      swing: swing,
-      channelControls: channelControls,
-      channelFx: channelFx,
-      globalReverbSettings: globalReverbSettings,
-      busCompressorSettings: busCompressorSettings,
-      chainEnabled: chainEnabled,
-      chainLength: chainLength,
-      patternChain: patternChain,
-      selectedSampleIndexes: selectedSampleIndexes,
-    };
-
-    const savedSession = saveAsNewSession(sessionToSave);
-
-    // Update the current pattern ID and name
-    setCurrentSessionId(savedSession.id);
-    setCurrentSessionName(savedSession.name);
-
-    // Reset modification state since we just saved
-    setIsSessionModified(false);
-  };
+  const {
+    currentSessionId,
+    currentSessionName,
+    isSessionModified,
+    loadSession,
+    saveSession,
+    saveAsSession,
+    renameSession,
+  } = useSessionStorage({
+    patterns,
+    bpm,
+    swing,
+    channelControls,
+    channelFx,
+    globalReverbSettings,
+    busCompressorSettings,
+    chainEnabled,
+    chainLength,
+    patternChain,
+    selectedSampleIndexes,
+    setPatterns,
+    setBpm,
+    setSwing,
+    setChannelControls,
+    setChannelFx,
+    setGlobalReverbSettings,
+    setBusCompressorSettings,
+    setChainEnabled,
+    setChainLength,
+    setPatternChain,
+    setSelectedSampleIndexes,
+    applyAllChannelControls,
+    applyAllChannelFx,
+    applyGlobalReverbSettings,
+    applyBusCompressorSettings,
+    audioEngine,
+  });
 
   // ──────────────────────────────────────────────────────────────
   // Render
@@ -770,7 +589,7 @@ function App() {
               <div className="ml-auto flex gap-2">
                 <Button
                   variant="outline"
-                  onClick={handleOpenLoadDialog}
+                  onClick={() => setIsLoadDialogOpen(true)}
                   className="flex items-center"
                 >
                   <Folder className="mr-2 h-4 w-4" />
@@ -779,7 +598,7 @@ function App() {
 
                 <Button
                   variant="outline"
-                  onClick={handleSaveSession}
+                  onClick={saveSession}
                   disabled={!isSessionModified && currentSessionId !== null}
                   className="flex items-center"
                 >
@@ -927,14 +746,14 @@ function App() {
           <SessionManagerDialog
             isOpen={isLoadDialogOpen}
             onClose={() => setIsLoadDialogOpen(false)}
-            onSessionSelect={handleSessionLoad}
-            onSessionRename={handleSessionRename}
+            onSessionSelect={loadSession}
+            onSessionRename={renameSession}
           />
 
           <SaveSessionDialog
             isOpen={isSaveAsDialogOpen}
             onClose={() => setIsSaveAsDialogOpen(false)}
-            onSave={handleSaveAsSession}
+            onSave={saveAsSession}
             initialName={
               isSessionModified
                 ? currentSessionName
