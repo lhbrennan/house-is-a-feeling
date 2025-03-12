@@ -40,9 +40,9 @@ export function TransportControls({
           onValueChange={([val]) => onSwingChange(val)}
           max={0.5}
           step={0.01}
-          className="w-32"
+          className="w-24"
         />
-        <span>{Math.round(swing * 100)}%</span>
+        <span className="w-9">{Math.round(swing * 100)}%</span>
       </div>
 
       <Button onClick={onTogglePlay}>
