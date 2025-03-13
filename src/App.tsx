@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import * as Tone from "tone";
 import { Save, Folder, FilePlus2 } from "lucide-react";
+import { Particles } from "@/components/magicui/particles";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
@@ -565,14 +566,25 @@ function App() {
   // ──────────────────────────────────────────────────────────────
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-      <div className="relative h-screen">
-        <div className="absolute top-4 right-4">
+      {/* Particles in the background, using position absolute to keep them outside the main content */}
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        <Particles
+          className="absolute inset-0"
+          quantity={300}
+          staticity={20}
+          ease={20}
+          color="hsl(var(--primary))"
+        />
+      </div>
+
+      <div className="min-h-screen w-full">
+        <div className="absolute top-4 right-4 z-10">
           <ThemeToggle />
         </div>
 
-        <div className="flex h-full justify-center">
-          <div className="space-y-7 p-4">
-            <div className="flex items-center justify-between">
+        <div className="flex justify-center p-4">
+          <div className="bg-background/95 inline-block rounded-lg p-6 shadow-lg backdrop-blur-sm">
+            <div className="mb-8 flex items-center justify-between">
               <h1 className="text-foreground text-center font-[Chicle] text-4xl font-bold drop-shadow-lg">
                 House is a Feeling
               </h1>
@@ -589,18 +601,20 @@ function App() {
             </div>
 
             {/* Top Section: Transport and BPM */}
-            <div className="flex flex-wrap items-center space-x-4 pb-6">
-              <TransportControls
-                bpm={bpm}
-                swing={swing}
-                isPlaying={isPlaying}
-                onBpmChange={handleBpmChange}
-                onSwingChange={setSwing}
-                onTogglePlay={handleTogglePlay}
-              />
+            <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <TransportControls
+                  bpm={bpm}
+                  swing={swing}
+                  isPlaying={isPlaying}
+                  onBpmChange={handleBpmChange}
+                  onSwingChange={setSwing}
+                  onTogglePlay={handleTogglePlay}
+                />
+              </div>
 
               {/* Pattern Storage Controls */}
-              <div className="ml-auto flex gap-2">
+              <div className="flex gap-2">
                 <Button
                   variant="outline"
                   onClick={() => setIsLoadDialogOpen(true)}
@@ -634,13 +648,15 @@ function App() {
             </div>
 
             {/* Main Section: ChannelControls, Grid, & ChannelFx */}
-            <div className="flex">
-              <div className="relative ml-4 space-x-4">
-                <div className="absolute top-[-25px] left-0 flex h-6 w-full items-start justify-start gap-3">
+            <div className="flex overflow-x-auto pt-8 pb-4">
+              <div className="relative mr-4 flex-shrink-0 space-x-4">
+                <div className="absolute top-[-35px] left-0 flex h-6 w-full items-start justify-start gap-3">
                   <div className="w-18 text-center text-xs">Mute / Solo</div>
                   <div className="w-10 text-center text-xs">Pan</div>
                   <div className="w-10 text-center text-xs">Volume</div>
-                  <div className="text-center text-xs grow">Sample Selection</div>
+                  <div className="grow text-center text-xs">
+                    Sample Selection
+                  </div>
                 </div>
 
                 <ChannelControls
@@ -656,7 +672,7 @@ function App() {
                 />
               </div>
 
-              <div className="relative">
+              <div className="relative flex-shrink-0">
                 <Ruler
                   currentStep={currentStep}
                   numSteps={NUM_STEPS}
@@ -673,8 +689,8 @@ function App() {
                 />
               </div>
 
-              <div className="relative ml-4 space-x-4">
-                <div className="absolute top-[-25px] left-0 flex h-6 w-full items-start justify-between">
+              <div className="relative ml-4 flex-shrink-0 space-x-4">
+                <div className="absolute top-[-35px] left-0 flex h-6 w-full items-start justify-between">
                   <div className="text-xs">Delay</div>
                   <div></div>
                   <div className="text-xs">Reverb</div>
@@ -689,8 +705,8 @@ function App() {
             </div>
 
             {/* Bottom Section: Pattern controls */}
-            <div className="flex items-center justify-center gap-4">
-              <div className="flex items-center justify-center gap-3">
+            <div className="mt-8 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
                 <Button
                   variant="outline"
                   onClick={() => shiftGrid(getDisplayedPattern(), "left")}
@@ -716,67 +732,64 @@ function App() {
                 setPatterns={setPatterns}
               />
 
-              <Button
-                onClick={() => setIsGlobalReverbDialogOpen(true)}
-                className="ml-auto"
-              >
+              <Button onClick={() => setIsGlobalReverbDialogOpen(true)}>
                 Global Effects
               </Button>
             </div>
 
-            <PatternChain
-              chainEnabled={chainEnabled}
-              setChainEnabled={setChainEnabled}
-              chainLength={chainLength}
-              setChainLength={setChainLength}
-              patternChain={patternChain}
-              setPatternChain={setPatternChain}
-              isPlaying={isPlaying}
-              chainMeasure={chainMeasure}
-              measureCounterRef={measureCounterRef}
-              setChainMeasure={setChainMeasure}
-            />
+            <div className="mt-8">
+              <PatternChain
+                chainEnabled={chainEnabled}
+                setChainEnabled={setChainEnabled}
+                chainLength={chainLength}
+                setChainLength={setChainLength}
+                patternChain={patternChain}
+                setPatternChain={setPatternChain}
+                isPlaying={isPlaying}
+                chainMeasure={chainMeasure}
+                measureCounterRef={measureCounterRef}
+                setChainMeasure={setChainMeasure}
+              />
+            </div>
           </div>
-
-          <ChannelFxDialog
-            channel={activeChannelFxDialog}
-            channelFx={
-              activeChannelFxDialog && channelFx[activeChannelFxDialog]
-            }
-            handleChannelFxChange={handleChannelFxChange}
-            onClose={() => setActiveChannelFxDialog(null)}
-          />
-
-          <GlobalFxDialog
-            isOpen={isGlobalReverbDialogOpen}
-            globalReverbSettings={globalReverbSettings}
-            busCompressorSettings={busCompressorSettings}
-            handleGlobalReverbChange={handleGlobalReverbChange}
-            handleBusCompressorChange={handleBusCompressorChange}
-            setOpen={setIsGlobalReverbDialogOpen}
-          />
-
-          <SessionManagerDialog
-            isOpen={isLoadDialogOpen}
-            onClose={() => setIsLoadDialogOpen(false)}
-            onSessionSelect={loadSession}
-            onSessionRename={renameSession}
-          />
-
-          <SaveSessionDialog
-            isOpen={isSaveAsDialogOpen}
-            onClose={() => setIsSaveAsDialogOpen(false)}
-            onSave={saveAsSession}
-            initialName={
-              isSessionModified
-                ? currentSessionName
-                : currentSessionName
-                  ? `${currentSessionName} (Copy)`
-                  : "New Session"
-            }
-          />
         </div>
       </div>
+
+      <ChannelFxDialog
+        channel={activeChannelFxDialog}
+        channelFx={activeChannelFxDialog && channelFx[activeChannelFxDialog]}
+        handleChannelFxChange={handleChannelFxChange}
+        onClose={() => setActiveChannelFxDialog(null)}
+      />
+
+      <GlobalFxDialog
+        isOpen={isGlobalReverbDialogOpen}
+        globalReverbSettings={globalReverbSettings}
+        busCompressorSettings={busCompressorSettings}
+        handleGlobalReverbChange={handleGlobalReverbChange}
+        handleBusCompressorChange={handleBusCompressorChange}
+        setOpen={setIsGlobalReverbDialogOpen}
+      />
+
+      <SessionManagerDialog
+        isOpen={isLoadDialogOpen}
+        onClose={() => setIsLoadDialogOpen(false)}
+        onSessionSelect={loadSession}
+        onSessionRename={renameSession}
+      />
+
+      <SaveSessionDialog
+        isOpen={isSaveAsDialogOpen}
+        onClose={() => setIsSaveAsDialogOpen(false)}
+        onSave={saveAsSession}
+        initialName={
+          isSessionModified
+            ? currentSessionName
+            : currentSessionName
+              ? `${currentSessionName} (Copy)`
+              : "New Session"
+        }
+      />
     </ThemeProvider>
   );
 }
