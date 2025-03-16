@@ -1,9 +1,9 @@
 import React, { useRef, useState, useEffect } from "react";
 import * as Tone from "tone";
 import { Save, Folder, FilePlus2 } from "lucide-react";
-import { Particles } from "@/components/magicui/particles";
 
 import { ThemeProvider } from "@/components/theme-provider";
+import { Particles } from "@/components/magicui/particles";
 import { Button } from "@/components/ui/button";
 import { Grid } from "@/components/grid";
 import { Ruler } from "@/components/ruler";
@@ -29,6 +29,7 @@ import { TransportControls } from "@/components/transport-controls";
 import { useAudioEngine } from "@/hooks/use-audio-engine";
 import { PatternChain } from "@/components/pattern-chain";
 import { PatternManager } from "@/components/pattern-manager";
+import { MidiExportButton } from "@/components/midi-export-button";
 
 // ─────────────────────────────────────────────────────────────────
 // Types & Constants
@@ -644,6 +645,12 @@ function App() {
                     Save As
                   </Button>
                 )}
+
+                <MidiExportButton
+                  pattern={patterns[getDisplayedPattern()]}
+                  patternName={`${currentSessionName || "Pattern"}-${getDisplayedPattern()}`}
+                  bpm={bpm}
+                />
               </div>
             </div>
 
