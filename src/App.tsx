@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import * as Tone from "tone";
-import { Save, Folder, FilePlus2 } from "lucide-react";
+import { Save, Folder, FilePlus2, Headphones } from "lucide-react";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { Particles } from "@/components/magicui/particles";
@@ -121,6 +121,8 @@ function App() {
   const [selectedSampleIndexes, setSelectedSampleIndexes] = useState(
     initialSelectedSampleIndexes,
   );
+
+  const [notePreviewEnabled, setNotePreviewEnabled] = useState(true);
 
   // Dialog states
   const [isLoadDialogOpen, setIsLoadDialogOpen] = useState(false);
@@ -618,6 +620,22 @@ function App() {
               <div className="flex gap-2">
                 <Button
                   variant="outline"
+                  onClick={() => {
+                    setNotePreviewEnabled((prev) => !prev);
+                  }}
+                  className={`flex items-center ${notePreviewEnabled ? "bg-accent text-accent-foreground" : ""}`}
+                  title={
+                    notePreviewEnabled
+                      ? "Disable note preview"
+                      : "Enable note preview"
+                  }
+                >
+                  <Headphones className="mr-2 h-4 w-4" />
+                  {notePreviewEnabled ? "Preview On" : "Preview Off"}
+                </Button>
+
+                <Button
+                  variant="outline"
                   onClick={() => setIsLoadDialogOpen(true)}
                   className="flex items-center"
                 >
@@ -689,9 +707,19 @@ function App() {
 
                 <Grid
                   grid={patterns[getDisplayedPattern()]}
-                  toggleCell={(row, col, newVal) =>
-                    toggleCell(getDisplayedPattern(), row, col, newVal)
-                  }
+                  toggleCell={(row, col, newVal) => {
+                    // Update pattern state
+                    toggleCell(getDisplayedPattern(), row, col, newVal);
+
+                    // Play preview sound if enabled and a note is added
+                    if (notePreviewEnabled && newVal > 0) {
+                      audioEngine.playNote(
+                        CHANNEL_NAMES[row],
+                        Tone.now(),
+                        getNormalizedVelocity(newVal),
+                      );
+                    }
+                  }}
                   currentStep={currentStep}
                 />
               </div>
