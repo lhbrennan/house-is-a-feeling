@@ -41,7 +41,7 @@ const initialChannelControls: Record<ChannelName, ChannelControlsType> =
   Object.fromEntries(
     CHANNEL_NAMES.map((channel) => [
       channel,
-      { mute: false, solo: false, volume: 1, pan: 0 },
+      { mute: false, solo: false, volume: .80, pan: 0 },
     ]),
   ) as Record<ChannelName, ChannelControlsType>;
 
