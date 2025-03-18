@@ -162,11 +162,13 @@ const audioEngine = {
       channel.highPassFilter.frequency.value,
       "highpass",
     );
+    tempHighPass.Q.value = 0;
 
     const tempLowPass = new Tone.Filter(
       channel.lowPassFilter.frequency.value,
       "lowpass",
     );
+    tempLowPass.Q.value = 0;
 
     // Connect through a completely independent chain
     p.chain(tempHighPass, tempLowPass, noteGain, channel.volume);
