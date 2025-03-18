@@ -437,6 +437,8 @@ const Knob = React.forwardRef<HTMLDivElement, KnobProps>(
         isDragging.current = false;
         document.body.style.cursor = "";
 
+        setIsHovering(false);
+
         // Remove event listeners
         document.removeEventListener("mousemove", handleMouseMove);
         document.removeEventListener("mouseup", handleMouseUp);
