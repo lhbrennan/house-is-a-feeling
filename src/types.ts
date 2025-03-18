@@ -5,6 +5,8 @@ export type ChannelFxState = {
   delayWet: number;
   delayFeedback: number;
   reverbSend: number;
+  highPassFreq: number;
+  lowPassFreq: number;
 };
 export type GlobalReverbSettings = {
   decay: number;

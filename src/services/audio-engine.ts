@@ -9,6 +9,8 @@ type Channel = {
   panner: Tone.Panner;
   delay: Tone.FeedbackDelay;
   reverbSend: Tone.Gain;
+  highPassFilter: Tone.Filter;
+  lowPassFilter: Tone.Filter;
 };
 
 const channels: Partial<Record<ChannelName, Channel>> = {};
@@ -82,8 +84,17 @@ const audioEngine = {
       const panner = new Tone.Panner(0);
       const feedbackDelay = new Tone.FeedbackDelay();
       const reverbSend = new Tone.Gain(0);
+      const highPassFilter = new Tone.Filter(20, "highpass");
+      const lowPassFilter = new Tone.Filter(20000, "lowpass");
 
-      player.chain(volume, feedbackDelay, panner, preEffectsBus);
+      player.chain(
+        highPassFilter,
+        lowPassFilter,
+        volume,
+        feedbackDelay,
+        panner,
+        preEffectsBus,
+      );
 
       panner.connect(reverbSend);
       reverbSend.connect(globalReverb);
@@ -94,6 +105,8 @@ const audioEngine = {
         panner,
         delay: feedbackDelay,
         reverbSend,
+        highPassFilter,
+        lowPassFilter,
       };
     });
 
@@ -136,21 +149,41 @@ const audioEngine = {
     const channel = channels[channelName];
     if (!channel || gain <= 0) return;
 
-    // Create an ephemeral Gain node and Player to modulate the note's gain
-    const noteGain = new Tone.Gain(gain).connect(channel.volume);
+    // Create an ephemeral Gain node
+    const noteGain = new Tone.Gain(gain);
 
+    // Create a new player with the buffer from the original player
     const p = new Tone.Player({
       url: channel.player.buffer,
-    }).connect(noteGain);
+    });
+
+    // Create temporary filters with the same settings as the channel filters
+    const tempHighPass = new Tone.Filter(
+      channel.highPassFilter.frequency.value,
+      "highpass",
+    );
+
+    const tempLowPass = new Tone.Filter(
+      channel.lowPassFilter.frequency.value,
+      "lowpass",
+    );
+
+    // Connect through a completely independent chain
+    p.chain(tempHighPass, tempLowPass, noteGain, channel.volume);
 
     p.start(time);
 
-    // Dispose of the ephemeral nodes after playback
+    // Dispose of all ephemeral nodes after playback
     const sampleDuration = channel.player.buffer?.duration || 1;
-    Tone.getTransport().scheduleOnce(() => {
-      p.dispose();
-      noteGain.dispose();
-    }, time + sampleDuration);
+    Tone.getTransport().scheduleOnce(
+      () => {
+        p.dispose();
+        noteGain.dispose();
+        tempHighPass.dispose();
+        tempLowPass.dispose();
+      },
+      time + sampleDuration + 0.1, // Add small buffer time to ensure complete playback before nodes are disposed
+    );
   },
 
   // --------------------------------------------------------------------------
@@ -189,6 +222,21 @@ const audioEngine = {
   setChannelReverbSend(channelName: ChannelName, sendAmount: number) {
     if (channels[channelName]) {
       channels[channelName]!.reverbSend.gain.value = sendAmount;
+    }
+  },
+
+  // --------------------------------------------------------------------------
+  // Filter parameter handlers
+  // --------------------------------------------------------------------------
+  setChannelHighPassFreq(channelName: ChannelName, frequency: number) {
+    if (channels[channelName]) {
+      channels[channelName]!.highPassFilter.frequency.value = frequency;
+    }
+  },
+
+  setChannelLowPassFreq(channelName: ChannelName, frequency: number) {
+    if (channels[channelName]) {
+      channels[channelName]!.lowPassFilter.frequency.value = frequency;
     }
   },
 
@@ -323,6 +371,8 @@ const audioEngine = {
         channel.panner.dispose();
         channel.delay.dispose();
         channel.reverbSend.dispose();
+        channel.highPassFilter.dispose();
+        channel.lowPassFilter.dispose();
       }
     });
     if (globalReverb) {

@@ -54,6 +54,8 @@ const initialChannelFx: Record<ChannelName, ChannelFxState> =
         delayWet: 0.0,
         delayFeedback: 0.25,
         reverbSend: channel === "Kick1" || channel === "Kick2" ? 0 : 0.15,
+        highPassFreq: 20,
+        lowPassFreq: 20000,
       },
     ]),
   ) as Record<ChannelName, ChannelFxState>;
@@ -353,9 +355,9 @@ function App() {
   // ──────────────────────────────────────────────────────────────
   // Channel Controls
   // ──────────────────────────────────────────────────────────────
-  function applyAllChannelControls(
+  const applyAllChannelControls = (
     controls: Record<ChannelName, ChannelControlsType>,
-  ) {
+  ) => {
     if (!engineReady) return;
     const anySolo = Object.values(controls).some((ctrl) => ctrl.solo);
 
@@ -367,7 +369,7 @@ function App() {
         audioEngine.setChannelPan(channel as ChannelName, pan);
       },
     );
-  }
+  };
 
   const onChangeChannel = (
     channel: ChannelName,
@@ -397,18 +399,18 @@ function App() {
   // ──────────────────────────────────────────────────────────────
   // Channel FX
   // ──────────────────────────────────────────────────────────────
-  function applyAllChannelFx(effects: Record<ChannelName, ChannelFxState>) {
+  const applyAllChannelFx = (effects: Record<ChannelName, ChannelFxState>) => {
     if (!engineReady) return;
-    Object.entries(effects).forEach(([channel, fx]) => {
-      audioEngine.setChannelDelayTime(channel as ChannelName, fx.delayTime);
-      audioEngine.setChannelDelayWet(channel as ChannelName, fx.delayWet);
-      audioEngine.setChannelDelayFeedback(
-        channel as ChannelName,
-        fx.delayFeedback,
-      );
-      audioEngine.setChannelReverbSend(channel as ChannelName, fx.reverbSend);
+    Object.entries(effects).forEach(([channelStr, fx]) => {
+      const channel = channelStr as ChannelName;
+      audioEngine.setChannelDelayTime(channel, fx.delayTime);
+      audioEngine.setChannelDelayWet(channel, fx.delayWet);
+      audioEngine.setChannelDelayFeedback(channel, fx.delayFeedback);
+      audioEngine.setChannelReverbSend(channel, fx.reverbSend);
+      audioEngine.setChannelHighPassFreq(channel, fx.highPassFreq);
+      audioEngine.setChannelLowPassFreq(channel, fx.lowPassFreq);
     });
-  }
+  };
 
   const handleChannelFxChange = (
     channel: ChannelName,
@@ -427,6 +429,14 @@ function App() {
           updated[channel].delayFeedback,
         );
         audioEngine.setChannelReverbSend(channel, updated[channel].reverbSend);
+        audioEngine.setChannelHighPassFreq(
+          channel,
+          updated[channel].highPassFreq,
+        );
+        audioEngine.setChannelLowPassFreq(
+          channel,
+          updated[channel].lowPassFreq,
+        );
       }
       return updated;
     });
@@ -726,6 +736,8 @@ function App() {
 
               <div className="relative ml-4 flex-shrink-0 space-x-4">
                 <div className="absolute top-[-35px] left-0 flex h-6 w-full items-start justify-between">
+                  <div className="text-xs">HP</div>
+                  <div className="text-xs">LP</div>
                   <div className="text-xs">Delay</div>
                   <div></div>
                   <div className="text-xs">Reverb</div>
