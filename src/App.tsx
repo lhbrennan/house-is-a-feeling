@@ -784,20 +784,19 @@ function App() {
               </Button>
             </div>
 
-            <div className="mt-8">
-              <PatternChain
-                chainEnabled={chainEnabled}
-                setChainEnabled={setChainEnabled}
-                chainLength={chainLength}
-                setChainLength={setChainLength}
-                patternChain={patternChain}
-                setPatternChain={setPatternChain}
-                isPlaying={isPlaying}
-                chainMeasure={chainMeasure}
-                measureCounterRef={measureCounterRef}
-                setChainMeasure={setChainMeasure}
-              />
-            </div>
+            <PatternChain
+              className="mt-8"
+              chainEnabled={chainEnabled}
+              setChainEnabled={setChainEnabled}
+              chainLength={chainLength}
+              setChainLength={setChainLength}
+              patternChain={patternChain}
+              setPatternChain={setPatternChain}
+              isPlaying={isPlaying}
+              chainMeasure={chainMeasure}
+              measureCounterRef={measureCounterRef}
+              setChainMeasure={setChainMeasure}
+            />
           </div>
         </div>
       </div>

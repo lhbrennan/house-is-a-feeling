@@ -8,6 +8,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { PatternId } from "@/types";
+import { cn } from "@/lib/utils";
 
 type PatternChainProps = {
   chainEnabled: boolean;
@@ -22,6 +23,7 @@ type PatternChainProps = {
   chainMeasure: number;
   measureCounterRef?: React.RefObject<number> | { current: number };
   setChainMeasure?: (measure: number) => void;
+  className?: string;
 };
 
 export function PatternChain({
@@ -35,6 +37,7 @@ export function PatternChain({
   chainMeasure,
   measureCounterRef,
   setChainMeasure,
+  className,
 }: PatternChainProps) {
   const handleChainToggle = (enabled: boolean) => {
     setChainEnabled(enabled);
@@ -72,7 +75,7 @@ export function PatternChain({
   };
 
   return (
-    <div className="relative mt-4">
+    <div className={cn("relative", className)}>
       <div
         className={`relative flex h-14 items-center overflow-hidden rounded-md border border-solid transition-all duration-300 ease-in-out ${chainEnabled ? "w-full" : "w-[150px]"} `}
       >
