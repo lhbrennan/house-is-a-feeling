@@ -4,8 +4,7 @@ import { cn } from "@/lib/utils";
 const calculateSensitivity = (min: number, max: number) => {
   const range = Math.abs(max - min);
 
-  // Base sensitivity that works well for range 0-100
-  const baseSensitivity = 0.25;
+  const baseSensitivity = 0.7;
 
   if (range <= 1) {
     // For very small ranges (0-1), use a much lower sensitivity
