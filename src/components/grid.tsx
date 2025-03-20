@@ -12,7 +12,7 @@ export function Grid({ grid, toggleCell, currentStep }: GridProps) {
   const stepsPerBeat = 4;
 
   return (
-    <div className="overflow-x-auto pr-1.5 pb-2 pl-1.5">
+    <div className="overflow-x-auto pr-1.5 pb-2 pl-1.5 pt-2">
       <div className="flex h-[390px] flex-col justify-between">
         {grid.map((row, rowIndex) => {
           // row = an array of 16 velocity values for this channel

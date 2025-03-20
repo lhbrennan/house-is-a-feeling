@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { PadVelocity } from "@/types";
 import "@/index.css";
@@ -43,6 +43,33 @@ const colorRamps = {
   },
 } as const;
 
+const borderColorRamps = {
+  violet: {
+    off: "border-violet-400",
+    low: "border-violet-400",
+    medium: "border-violet-600",
+    high: "border-violet-800",
+  },
+  cyan: {
+    off: "border-cyan-400",
+    low: "border-cyan-400",
+    medium: "border-cyan-500",
+    high: "border-cyan-700",
+  },
+  yellow: {
+    off: "border-yellow-400",
+    low: "border-yellow-400",
+    medium: "border-yellow-600",
+    high: "border-yellow-800",
+  },
+  red: {
+    off: "border-red-400",
+    low: "border-red-400",
+    medium: "border-red-600",
+    high: "border-red-800",
+  },
+};
+
 type PadProps = {
   state?: PadVelocity;
   color: (typeof PAD_COLORS)[number];
@@ -58,6 +85,7 @@ function Pad({
   ...props
 }: PadProps) {
   const state = PAD_VELOCITIES[numericState];
+  const [isHovered, setIsHovered] = useState(false);
 
   // Timer ref for mobile long press detection.
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
@@ -112,20 +140,31 @@ function Pad({
 
   const baseClasses =
     "flex items-center justify-center w-10 h-10 flex-shrink-0 rounded-lg outline-none \
-     transition-colors transition-transform duration-150 hover:scale-105";
+     transition-all duration-75 border-2";
 
   const colorClass = colorRamps[color][state];
+  const borderClass = isHovered
+    ? borderColorRamps[color][state]
+    : "border-transparent";
 
   return (
     <button
       type="button"
       data-animate={animate.toString()}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       onClick={handleClick}
       onContextMenu={handleContextMenu}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       aria-label={`Pad ${state}`}
-      className={cn(baseClasses, colorClass, animate && "pop-animation")}
+      className={cn(
+        baseClasses,
+        colorClass,
+        borderClass,
+        animate && "pop-animation",
+        isHovered && "scale-105 cursor-pointer",
+      )}
       {...props}
     />
   );

@@ -44,7 +44,7 @@ function ChannelFx({
   const MAX_LP = 20000;
 
   return (
-    <div className="flex h-[390px] flex-col items-center justify-between">
+    <div className="flex flex-col gap-[10px] pt-2">
       {CHANNEL_NAMES.map((channel) => {
         const { delayWet, reverbSend, highPassFreq, lowPassFreq } =
           channelFx[channel];

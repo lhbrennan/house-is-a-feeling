@@ -44,7 +44,7 @@ export function ChannelControls({
   playNoteImmediately,
 }: ChannelControlsProps) {
   return (
-    <div className="flex flex-col gap-[10px]">
+    <div className="flex flex-col gap-[10px] pt-2">
       {channelNames.map((channel, idx) => {
         const { volume, mute, solo, pan } = channelControls[channel];
         return (
