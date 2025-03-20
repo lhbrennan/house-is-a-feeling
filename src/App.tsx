@@ -41,7 +41,7 @@ const initialChannelControls: Record<ChannelName, ChannelControlsType> =
   Object.fromEntries(
     CHANNEL_NAMES.map((channel) => [
       channel,
-      { mute: false, solo: false, volume: .80, pan: 0 },
+      { mute: false, solo: false, volume: 0.8, pan: 0 },
     ]),
   ) as Record<ChannelName, ChannelControlsType>;
 
@@ -735,12 +735,12 @@ function App() {
               </div>
 
               <div className="relative ml-4 flex-shrink-0 space-x-4">
-                <div className="absolute top-[-35px] left-0 flex h-6 w-full items-start justify-between">
-                  <div className="text-xs">HP</div>
-                  <div className="text-xs">LP</div>
-                  <div className="text-xs">Delay</div>
-                  <div></div>
-                  <div className="text-xs">Reverb</div>
+                <div className="absolute top-[-35px] left-0 flex h-6 w-full items-start justify-start gap-3">
+                  <div className="w-10 text-center text-xs">HP</div>
+                  <div className="w-10 text-center text-xs">LP</div>
+                  <div className="w-10 text-center text-xs">Delay</div>
+                  <div className="w-9"></div>
+                  <div className="w-10 text-center text-xs">Reverb</div>
                 </div>
 
                 <ChannelFx
