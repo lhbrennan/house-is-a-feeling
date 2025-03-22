@@ -30,6 +30,7 @@ import { useAudioEngine } from "@/hooks/use-audio-engine";
 import { PatternChain } from "@/components/pattern-chain";
 import { PatternManager } from "@/components/pattern-manager";
 import { MidiExportButton } from "@/components/midi-export-button";
+import { HelpGuide } from "@/components/help-guide";
 
 // ─────────────────────────────────────────────────────────────────
 // Types & Constants
@@ -591,7 +592,8 @@ function App() {
       </div>
 
       <div className="min-h-screen w-full">
-        <div className="absolute top-4 right-4 z-10">
+        <div className="absolute top-4 right-4 z-10 flex items-center">
+          <HelpGuide />
           <ThemeToggle />
         </div>
 
