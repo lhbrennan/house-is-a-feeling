@@ -40,9 +40,6 @@ type UseSessionStorageProps = {
   setChainLength: (length: number) => void;
   setPatternChain: (chain: Array<PatternId>) => void;
   setSelectedSampleIndexes: (indexes: Record<ChannelName, number>) => void;
-  applyAllChannelControls: (
-    controls: Record<ChannelName, ChannelControlsType>,
-  ) => void;
   applyAllChannelFx: (fx: Record<ChannelName, ChannelFxState>) => void;
   applyGlobalReverbSettings: (settings: GlobalReverbSettings) => void;
   applyBusCompressorSettings: (settings: BusCompressorSettings) => void;
@@ -74,7 +71,6 @@ export function useSessionStorage({
   setChainLength,
   setPatternChain,
   setSelectedSampleIndexes,
-  applyAllChannelControls,
   applyAllChannelFx,
   applyGlobalReverbSettings,
   applyBusCompressorSettings,
@@ -154,7 +150,6 @@ export function useSessionStorage({
       Object.keys(storedSession.channelControls).length > 0
     ) {
       setChannelControls(storedSession.channelControls);
-      applyAllChannelControls(storedSession.channelControls);
     }
 
     // Load channel FX

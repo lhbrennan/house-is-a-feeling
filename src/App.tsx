@@ -25,8 +25,9 @@ import type {
 } from "@/types";
 import { useGrid } from "@/hooks/use-grid";
 import { useSessionStorage } from "@/hooks/use-session-storage";
-import { TransportControls } from "@/components/transport-controls";
 import { useAudioEngine } from "@/hooks/use-audio-engine";
+import { useChannelControls } from "@/hooks/use-channel-controls";
+import { TransportControls } from "@/components/transport-controls";
 import { PatternChain } from "@/components/pattern-chain";
 import { PatternManager } from "@/components/pattern-manager";
 import { MidiExportButton } from "@/components/midi-export-button";
@@ -110,10 +111,6 @@ function App() {
   const [swing, setSwing] = useState(0);
 
   const [currentPattern, setCurrentPattern] = useState<PatternId>("A");
-
-  const [channelControls, setChannelControls] = useState(
-    initialChannelControls,
-  );
   const [channelFx, setChannelFx] = useState(initialChannelFx);
   const [globalReverbSettings, setGlobalReverbSettings] = useState(
     initialGlobalReverbSettings,
@@ -346,7 +343,6 @@ function App() {
   // ──────────────────────────────────────────────────────────────
   useEffect(() => {
     if (engineReady) {
-      applyAllChannelControls(channelControls);
       applyAllChannelFx(channelFx);
       applyGlobalReverbSettings(globalReverbSettings);
       applyBusCompressorSettings(busCompressorSettings);
@@ -356,38 +352,8 @@ function App() {
   // ──────────────────────────────────────────────────────────────
   // Channel Controls
   // ──────────────────────────────────────────────────────────────
-  const applyAllChannelControls = (
-    controls: Record<ChannelName, ChannelControlsType>,
-  ) => {
-    if (!engineReady) return;
-    const anySolo = Object.values(controls).some((ctrl) => ctrl.solo);
-
-    Object.entries(controls).forEach(
-      ([channel, { mute, solo, volume, pan }]) => {
-        const effectiveMute = mute || (anySolo && !solo);
-        const volumeDb = effectiveMute ? -Infinity : Tone.gainToDb(volume);
-        audioEngine.setChannelVolume(channel as ChannelName, volumeDb);
-        audioEngine.setChannelPan(channel as ChannelName, pan);
-      },
-    );
-  };
-
-  useEffect(() => {
-    if (engineReady) {
-      applyAllChannelControls(channelControls);
-    }
-  }, [channelControls, engineReady]);
-
-  const onChangeChannel = (
-    channel: ChannelName,
-    partial: Partial<ChannelControlsType>,
-  ) => {
-    setChannelControls((prev) => {
-      const next = { ...prev };
-      next[channel] = { ...prev[channel], ...partial };
-      return next;
-    });
-  };
+  const { channelControls, setChannelControls, onChangeChannel } =
+    useChannelControls(initialChannelControls, audioEngine, engineReady);
 
   const handleSampleChange = async (
     channel: ChannelName,
@@ -562,7 +528,6 @@ function App() {
     setChainLength,
     setPatternChain,
     setSelectedSampleIndexes,
-    applyAllChannelControls,
     applyAllChannelFx,
     applyGlobalReverbSettings,
     applyBusCompressorSettings,
