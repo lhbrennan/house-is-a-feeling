@@ -372,6 +372,12 @@ function App() {
     );
   };
 
+  useEffect(() => {
+    if (engineReady) {
+      applyAllChannelControls(channelControls);
+    }
+  }, [channelControls, engineReady]);
+
   const onChangeChannel = (
     channel: ChannelName,
     partial: Partial<ChannelControlsType>,
@@ -379,7 +385,6 @@ function App() {
     setChannelControls((prev) => {
       const next = { ...prev };
       next[channel] = { ...prev[channel], ...partial };
-      applyAllChannelControls(next);
       return next;
     });
   };
