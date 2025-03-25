@@ -13,7 +13,16 @@ type Channel = {
   lowPassFilter: Tone.Filter;
 };
 
+type PooledPlayer = {
+  player: Tone.Player;
+  gain: Tone.Gain;
+  inUse: boolean;
+  lastUsedTime: number;
+};
+
 const channels: Partial<Record<ChannelName, Channel>> = {};
+const playerPools: Record<string, PooledPlayer[]> = {};
+const PLAYERS_PER_CHANNEL = 8;
 
 let globalReverb: Tone.Reverb;
 let busCompressor: Tone.Compressor;
@@ -42,8 +51,10 @@ const audioEngine = {
     if (isInitialized) return;
     await Tone.start();
 
+    // Create main signal path
     preEffectsBus = new Tone.Gain(1);
 
+    // Compressor setup
     busCompressor = new Tone.Compressor({
       threshold: -24,
       ratio: 4,
@@ -56,30 +67,31 @@ const audioEngine = {
     compressorDryGain = new Tone.Gain(1);
     compressorBypass = new Tone.Gain(1);
 
-    // Set up routing with parallel paths for dry/wet mixing:
-
-    // Path 1 (Dry): mainBus -> compressorDryGain -> compressorBypass -> destination
+    // Setup parallel compression paths
     preEffectsBus.connect(compressorDryGain);
     compressorDryGain.connect(compressorBypass);
 
-    // Path 2 (Wet): mainBus -> busCompressor -> compressorMakeUpGain -> compressorWetGain -> compressorBypass -> destination
     preEffectsBus.connect(busCompressor);
     busCompressor.connect(compressorMakeUpGain);
     compressorMakeUpGain.connect(compressorWetGain);
     compressorWetGain.connect(compressorBypass);
 
-    // Final output
     compressorBypass.toDestination();
 
-    globalReverb = new Tone.Reverb();
+    // Create and connect reverb
+    globalReverb = new Tone.Reverb({
+      decay: 2.5,
+      preDelay: 0.05,
+      wet: 1,
+    });
     globalReverb.connect(preEffectsBus);
 
-    // For each channel, use the first sample in the array as the default.
-    const players = new Tone.Players(initialSamplePaths);
+    // Create channel processing chains
+    for (const channelName of Object.keys(SAMPLES)) {
+      const channel = channelName as ChannelName;
 
-    // Create channel processing for each channel.
-    Object.keys(SAMPLES).forEach((channelName) => {
-      const player = players.player(channelName);
+      // Create main channel processing nodes
+      const player = new Tone.Player();
       const volume = new Tone.Volume(0);
       const panner = new Tone.Panner(0);
       const feedbackDelay = new Tone.FeedbackDelay();
@@ -87,6 +99,7 @@ const audioEngine = {
       const highPassFilter = new Tone.Filter(20, "highpass");
       const lowPassFilter = new Tone.Filter(20000, "lowpass");
 
+      // Connect channel processing chain
       player.chain(
         highPassFilter,
         lowPassFilter,
@@ -99,7 +112,8 @@ const audioEngine = {
       panner.connect(reverbSend);
       reverbSend.connect(globalReverb);
 
-      channels[channelName as ChannelName] = {
+      // Store channel references
+      channels[channel] = {
         player,
         volume,
         panner,
@@ -108,22 +122,121 @@ const audioEngine = {
         highPassFilter,
         lowPassFilter,
       };
-    });
 
-    await Tone.loaded();
-    console.log("All ToneJS buffers are loaded.");
+      // Load initial sample
+      const initialSamplePath = initialSamplePaths[channel];
+      try {
+        console.log(`Loading sample for ${channel}: ${initialSamplePath}`);
+        await player.load(initialSamplePath);
+        console.log(`Sample loaded for ${channel}`);
+      } catch (error) {
+        console.error(`Error loading sample for ${channel}:`, error);
+      }
 
-    // --------------------------------------------------------------------------
+      // Initialize player pool for this channel
+      this.initPlayerPool(channel);
+    }
+
     // Configure Global Transport
-    // --------------------------------------------------------------------------
     const transport = Tone.getTransport();
     transport.bpm.value = 120;
     transport.loop = true;
     transport.loopEnd = "1m";
 
     isInitialized = true;
+    console.log("Audio engine initialization complete!");
   },
 
+  // --------------------------------------------------------------------------
+  // Player Pool Management
+  // --------------------------------------------------------------------------
+  initPlayerPool(channelName: ChannelName) {
+    console.log(`Initializing player pool for ${channelName}`);
+    playerPools[channelName] = [];
+
+    const channel = channels[channelName];
+    if (!channel) {
+      console.error(`Channel ${channelName} not found`);
+      return;
+    }
+
+    for (let i = 0; i < PLAYERS_PER_CHANNEL; i++) {
+      // We won't set the buffer now - will be set on first play
+      const player = new Tone.Player();
+
+      // Create gain node for velocity control
+      const gain = new Tone.Gain(1);
+
+      // Connect player to gain, then gain to the filters
+      player.connect(gain);
+      gain.connect(channel.highPassFilter);
+
+      // Add to pool
+      playerPools[channelName].push({
+        player,
+        gain,
+        inUse: false,
+        lastUsedTime: 0,
+      });
+    }
+
+    console.log(
+      `Pool for ${channelName} initialized with ${PLAYERS_PER_CHANNEL} players`,
+    );
+  },
+
+  getFreePlayerFromPool(channelName: ChannelName): PooledPlayer | null {
+    const pool = playerPools[channelName];
+    if (!pool) {
+      console.error(`No player pool exists for channel ${channelName}`);
+      return null;
+    }
+
+    const now = Tone.now();
+
+    // First, look for any player that's completely free
+    for (let i = 0; i < pool.length; i++) {
+      if (!pool[i].inUse) {
+        pool[i].inUse = true;
+        pool[i].lastUsedTime = now;
+        return pool[i];
+      }
+    }
+
+    // If all are in use, find the oldest used player
+    let oldestIndex = 0;
+    let oldestTime = Infinity;
+
+    for (let i = 0; i < pool.length; i++) {
+      if (pool[i].lastUsedTime < oldestTime) {
+        oldestTime = pool[i].lastUsedTime;
+        oldestIndex = i;
+      }
+    }
+
+    if (now - oldestTime < 0.05) {
+      console.warn(
+        `All ${PLAYERS_PER_CHANNEL} players for ${channelName} are being used simultaneously.`,
+      );
+    }
+
+    // Reuse the oldest player - it's likely finished playing already
+    pool[oldestIndex].inUse = true;
+    pool[oldestIndex].lastUsedTime = now;
+    return pool[oldestIndex];
+  },
+
+  // Release player back to the pool
+  releasePlayer(pooledPlayer: PooledPlayer, delay = 0.2) {
+    // Schedule release a bit later to ensure note has fully played
+    setTimeout(() => {
+      pooledPlayer.inUse = false;
+    }, delay * 1000);
+  },
+
+  // --------------------------------------------------------------------------
+  // Transport Controls
+  // --------------------------------------------------------------------------
   startTransport() {
     if (!isInitialized) return;
     Tone.getTransport().start();
@@ -131,6 +244,13 @@ const audioEngine = {
 
   stopTransport() {
     Tone.getTransport().stop();
+
+    // Reset all players in the pool
+    Object.keys(playerPools).forEach((channelName) => {
+      playerPools[channelName].forEach((node) => {
+        node.inUse = false;
+      });
+    });
   },
 
   setBPM(bpm: number) {
@@ -139,53 +259,52 @@ const audioEngine = {
 
   setLoopLength(loopLength: LoopLength) {
     Tone.getTransport().loopEnd = loopLength;
-    console.log(`Loop length set to ${loopLength}`);
   },
 
   // --------------------------------------------------------------------------
-  // Trigger Note
+  // Trigger Note using Player Pool
   // --------------------------------------------------------------------------
   playNote(channelName: ChannelName, time: number, gain: number) {
     const channel = channels[channelName];
     if (!channel || gain <= 0) return;
 
-    // Create an ephemeral Gain node
-    const noteGain = new Tone.Gain(gain);
+    // Get a free player from the pool
+    const pooledNode = this.getFreePlayerFromPool(channelName);
+    if (!pooledNode) return;
 
-    // Create a new player with the buffer from the original player
-    const p = new Tone.Player({
-      url: channel.player.buffer,
-    });
+    pooledNode.gain.gain.value = gain;
 
-    // Create temporary filters with the same settings as the channel filters
-    const tempHighPass = new Tone.Filter(
-      channel.highPassFilter.frequency.value,
-      "highpass",
-    );
-    tempHighPass.Q.value = 0;
+    // Share the buffer from the main channel player
+    if (
+      channel.player.buffer &&
+      pooledNode.player.buffer !== channel.player.buffer
+    ) {
+      pooledNode.player.buffer = channel.player.buffer;
+    }
 
-    const tempLowPass = new Tone.Filter(
-      channel.lowPassFilter.frequency.value,
-      "lowpass",
-    );
-    tempLowPass.Q.value = 0;
+    // If we don't have a buffer yet, we can't play
+    if (!pooledNode.player.buffer) {
+      console.warn(`No buffer available for ${channelName}`);
+      this.releasePlayer(pooledNode, 0);
+      return;
+    }
 
-    // Connect through a completely independent chain
-    p.chain(tempHighPass, tempLowPass, noteGain, channel.volume);
+    // Start the player
+    try {
+      pooledNode.player.start(time);
 
-    p.start(time);
+      // Calculate actual release time based on when the note should be played
+      const releaseDelay =
+        (typeof time === "number" ? time - Tone.now() : 0) +
+        pooledNode.player.buffer.duration +
+        0.1;
 
-    // Dispose of all ephemeral nodes after playback
-    const sampleDuration = channel.player.buffer?.duration || 1;
-    Tone.getTransport().scheduleOnce(
-      () => {
-        p.dispose();
-        noteGain.dispose();
-        tempHighPass.dispose();
-        tempLowPass.dispose();
-      },
-      time + sampleDuration + 0.1, // Add small buffer time to ensure complete playback before nodes are disposed
-    );
+      // Release the player after it finishes playing
+      this.releasePlayer(pooledNode, releaseDelay);
+    } catch (error) {
+      console.error(`Error playing note on ${channelName}:`, error);
+      this.releasePlayer(pooledNode, 0);
+    }
   },
 
   // --------------------------------------------------------------------------
@@ -269,9 +388,13 @@ const audioEngine = {
 
     const newSamplePath = getSamplePath(availableSamples[newSampleIdx]);
 
-    // Use Tone.Player's load method to swap the sample.
-    await channels[channelName]!.player.load(newSamplePath);
-    console.log(`Channel ${channelName} updated with sample: ${newSamplePath}`);
+    try {
+      // Load the new sample into the main channel player
+      await channels[channelName]!.player.load(newSamplePath);
+      console.log(`Sample loaded successfully for ${channelName}`);
+    } catch (error) {
+      console.error(`Error loading sample for ${channelName}:`, error);
+    }
   },
 
   // --------------------------------------------------------------------------
@@ -366,6 +489,17 @@ const audioEngine = {
   // --------------------------------------------------------------------------
   dispose() {
     this.stopTransport();
+
+    // Dispose all pooled players
+    Object.keys(playerPools).forEach((channelName) => {
+      playerPools[channelName].forEach((node) => {
+        node.player.dispose();
+        node.gain.dispose();
+      });
+      delete playerPools[channelName];
+    });
+
+    // Dispose channel nodes
     Object.values(channels).forEach((channel) => {
       if (channel) {
         channel.player.dispose();
@@ -377,27 +511,35 @@ const audioEngine = {
         channel.lowPassFilter.dispose();
       }
     });
+
     if (globalReverb) {
       globalReverb.dispose();
     }
+
     if (busCompressor) {
       busCompressor.dispose();
     }
+
     if (compressorMakeUpGain) {
       compressorMakeUpGain.dispose();
     }
+
     if (compressorWetGain) {
       compressorWetGain.dispose();
     }
+
     if (compressorDryGain) {
       compressorDryGain.dispose();
     }
+
     if (compressorBypass) {
       compressorBypass.dispose();
     }
+
     if (preEffectsBus) {
       preEffectsBus.dispose();
     }
+
     isInitialized = false;
   },
 };
